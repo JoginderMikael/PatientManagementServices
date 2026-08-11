@@ -1,0 +1,13 @@
+### Create patient
+POST http://localhost:4000/patients
+Content-Type: application/json
+
+{
+  "name" : "Joginder Mikael",
+  "email" : "joginder@gmail.com",
+  "address" : "124-silei-silei",
+  "dateOfBirth" : "1997-02-21",
+  "registeredDate": "2026-02-06"
+}
+
+###

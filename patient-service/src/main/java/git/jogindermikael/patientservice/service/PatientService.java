@@ -1,5 +1,6 @@
 package git.jogindermikael.patientservice.service;
 
+import git.jogindermikael.patientservice.dto.PatientRequestDTO;
 import git.jogindermikael.patientservice.dto.PatientResponseDTO;
 import git.jogindermikael.patientservice.mapper.PatientMapper;
 import git.jogindermikael.patientservice.model.Patient;
@@ -21,6 +22,11 @@ public class PatientService {
         List<Patient> patients = patientRepository.findAll();
 
         return patients.stream().map(PatientMapper::toDto).toList();
+    }
+
+    public PatientResponseDTO createPatient(PatientRequestDTO  patientRequestDTO){
+        Patient newPatient = patientRepository.save(PatientMapper.toModel(patientRequestDTO));
+        return PatientMapper.toDto(newPatient);
     }
 
 }

@@ -1,12 +1,12 @@
 package git.jogindermikael.patientservice.controller;
 
+import git.jogindermikael.patientservice.dto.PatientRequestDTO;
 import git.jogindermikael.patientservice.dto.PatientResponseDTO;
 import git.jogindermikael.patientservice.model.Patient;
 import git.jogindermikael.patientservice.service.PatientService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ import java.util.List;
 @RequestMapping("/patients")
 public class PatientController {
 
-    private PatientService patientService;
+    private final PatientService patientService;
 
 
     public PatientController(PatientService patientService) {
@@ -26,4 +26,8 @@ public class PatientController {
         return ResponseEntity.ok().body(patientService.getPatients());
     }
 
+    @PostMapping
+    public ResponseEntity<PatientResponseDTO> createPatient(@Valid @RequestBody PatientRequestDTO  patientRequestDTO) {
+        return ResponseEntity.ok().body(patientService.createPatient(patientRequestDTO));
+    }
 }
