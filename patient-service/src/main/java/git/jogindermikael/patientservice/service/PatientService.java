@@ -8,6 +8,7 @@ import git.jogindermikael.patientservice.mapper.PatientMapper;
 import git.jogindermikael.patientservice.model.Patient;
 import git.jogindermikael.patientservice.repository.PatientRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.DeleteMapping;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -59,4 +60,8 @@ public class PatientService {
         return PatientMapper.toDto(updatedPatient);
     }
 
+
+    public void deletePatient(UUID id){
+        patientRepository.deleteById(id);
+    }
 }
