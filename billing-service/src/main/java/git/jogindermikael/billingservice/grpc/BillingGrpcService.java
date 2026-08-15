@@ -1,5 +1,6 @@
 package git.jogindermikael.billingservice.grpc;
 
+import billing.BillingRequest;
 import billing.BillingResponse;
 import billing.BillingServiceGrpc.BillingServiceImplBase;
 import io.grpc.stub.StreamObserver;
@@ -13,8 +14,8 @@ public class BillingGrpcService extends BillingServiceImplBase {
     private static final Logger log = LoggerFactory.getLogger(BillingGrpcService.class);
 
     @Override
-    public void createBillingAccount(billing.BillingRequest billingRequest,
-                                     StreamObserver<billing.BillingResponse> responseObserver) {
+    public void createBillingAccount(BillingRequest billingRequest,
+                                     StreamObserver<BillingResponse> responseObserver) {
         log.info("createBillingAccount request received {}", billingRequest.toString());
 
         //business logic -- eg. save to db, perform calculations etc.
