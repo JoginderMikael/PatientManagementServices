@@ -5,6 +5,7 @@ import git.jogindermikael.patientservice.dto.PatientResponseDTO;
 import git.jogindermikael.patientservice.exception.EmailAlreadyExistsException;
 import git.jogindermikael.patientservice.exception.PatientNotFoundException;
 import git.jogindermikael.patientservice.grpc.BillingServiceGrpcClient;
+import git.jogindermikael.patientservice.kafka.KafkaProducer;
 import git.jogindermikael.patientservice.mapper.PatientMapper;
 import git.jogindermikael.patientservice.model.Patient;
 import git.jogindermikael.patientservice.repository.PatientRepository;
@@ -20,10 +21,12 @@ import java.util.UUID;
 public class PatientService {
     private final PatientRepository patientRepository;
     private final BillingServiceGrpcClient billingServiceGrpcClient;
+    private final KafkaProducer kafkaProducer;
 
-    public PatientService(PatientRepository patientRepository, BillingServiceGrpcClient billingServiceGrpcClient) {
+    public PatientService(PatientRepository patientRepository, BillingServiceGrpcClient billingServiceGrpcClient, KafkaProducer kafkaProducer) {
         this.patientRepository = patientRepository;
         this.billingServiceGrpcClient = billingServiceGrpcClient;
+        this.kafkaProducer = kafkaProducer;
     }
 
     public List<PatientResponseDTO> getPatients(){
@@ -41,9 +44,14 @@ public class PatientService {
 
         Patient newPatient = patientRepository.save(PatientMapper.toModel(patientRequestDTO));
 
+        //create billing account with grpc
         billingServiceGrpcClient.createBillingAccount(
                 newPatient.getId().toString(), newPatient.getName(), newPatient.getEmail()
         );
+
+        //send patient event
+        kafkaProducer.sendEvent(newPatient);
+
         return PatientMapper.toDto(newPatient);
     }
 
