@@ -2,7 +2,7 @@ package git.jogindermikael.authservice.dto;
 
 public class LoginResponseDto {
 
-    private String token;
+    private final String token;
 
     public LoginResponseDto(String token) {
         this.token = token;
@@ -11,4 +11,5 @@ public class LoginResponseDto {
     public String getToken() {
         return token;
     }
+
 }
