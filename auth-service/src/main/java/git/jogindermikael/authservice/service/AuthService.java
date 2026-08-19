@@ -2,6 +2,7 @@ package git.jogindermikael.authservice.service;
 
 import git.jogindermikael.authservice.dto.LoginRequestDto;
 import git.jogindermikael.authservice.util.JwtUtil;
+import io.jsonwebtoken.JwtException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -26,5 +27,14 @@ public class AuthService {
         return userService.findByEmail(loginRequestDto.getEmail())
                 .filter(u -> passwordEncoder.matches(loginRequestDto.getPassword(), u.getPassword()))
                 .map(u -> jwtUtil.generateToken(u.getEmail(), u.getRole()));
+    }
+
+    public boolean validateToken(String token) {
+        try{
+            jwtUtil.validateToken(token);
+            return true;
+        }catch (JwtException e){
+            return false;
+        }
     }
 }
