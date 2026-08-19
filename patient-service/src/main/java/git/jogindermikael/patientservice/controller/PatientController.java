@@ -20,7 +20,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/patients")
 @Tag(name = "Patient", description = "API for Managing Patients")
-@Server(url = "http://localhost:4004", description = "API Gateway")
 public class PatientController {
 
     private final PatientService patientService;

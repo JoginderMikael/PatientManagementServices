@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
 
 @RestController
-@Server(url = "http://localhost:4004", description = "API Gateway")
 public class AuthController {
 
     private final AuthService authService;

@@ -4,10 +4,10 @@ server:
 springdoc:
   swagger-ui:
     urls:
-      - name: Patient Service
-        url: /patient-v3-api-docs
-      - name: Auth Service
+      - name: auth-service
         url: /auth-v3-api-docs
+      - name: patient-service
+        url: /patient-v3-api-docs
   api-docs:
     enabled: true
 
