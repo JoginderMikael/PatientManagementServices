@@ -5,6 +5,7 @@ import git.jogindermikael.authservice.dto.LoginRequestDto;
 import git.jogindermikael.authservice.dto.LoginResponseDto;
 import git.jogindermikael.authservice.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.servers.Server;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
 
 @RestController
+@Server(url = "http://localhost:4004", description = "API Gateway")
 public class AuthController {
 
     private final AuthService authService;

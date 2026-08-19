@@ -1,6 +1,16 @@
 server:
   port: 4004
 
+springdoc:
+  swagger-ui:
+    urls:
+      - name: Patient Service
+        url: /patient-v3-api-docs
+      - name: Auth Service
+        url: /auth-v3-api-docs
+  api-docs:
+    enabled: true
+
 spring:
   cloud:
     gateway:
@@ -25,22 +35,14 @@ spring:
             - JwtValidation
 
         #Route for Patient service docs
-        - id: api-docs-patient-route
+        - id: patient-v3-api-docs-route
           uri: http://patient-service:4000
           predicates:
-              - Path=/api-docs/patients/**
-          filters:
-              - RewritePath=/api-docs/patients/(?<path>.*), /v3/api-docs/$\{path}
+            - Path=/patient-v3-api-docs/**
 
-        #Route for swagger UI
-        - id: swagger-ui-patient-route
-          uri: http://patient-service:4000
+        #Route for Auth service docs
+        - id: auth-v3-api-docs-route
+          uri: http://auth-service:4005
           predicates:
-            - Path=/swagger-ui/**
-
-        #Route for swagger resources
-        - id: swagger-resources-patient-route
-          uri: http://patient-service:4000
-          predicates:
-            - Path=/v3/api-docs/**
+            - Path=/auth-v3-api-docs/**
 

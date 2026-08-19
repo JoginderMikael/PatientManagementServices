@@ -6,6 +6,7 @@ import git.jogindermikael.patientservice.dto.validators.CreatePatientValidationG
 import git.jogindermikael.patientservice.model.Patient;
 import git.jogindermikael.patientservice.service.PatientService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.groups.Default;
@@ -19,6 +20,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/patients")
 @Tag(name = "Patient", description = "API for Managing Patients")
+@Server(url = "http://localhost:4004", description = "API Gateway")
 public class PatientController {
 
     private final PatientService patientService;
