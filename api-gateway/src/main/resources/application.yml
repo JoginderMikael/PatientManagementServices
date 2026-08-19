@@ -5,6 +5,17 @@ spring:
   cloud:
     gateway:
       routes:
+
+          #Route for /auth/** to auth service
+        - id: auth-service-route
+          uri: http://auth-service:4005
+          predicates:
+            - Path=/auth/**
+          filters:
+            - StripPrefix=1
+
+
+        # Route for /api/patients/** to patient service
         - id: patient-service-route
           uri: http://patient-service:4000
           predicates:
@@ -12,6 +23,7 @@ spring:
           filters:
             - StripPrefix=1
 
+        #Route for Patient service docs
         - id: api-docs-patient-route
           uri: http://patient-service:4000
           predicates:
@@ -19,12 +31,15 @@ spring:
           filters:
               - RewritePath=/api-docs/patients/(?<path>.*), /v3/api-docs/$\{path}
 
+        #Route for swagger UI
         - id: swagger-ui-patient-route
           uri: http://patient-service:4000
           predicates:
             - Path=/swagger-ui/**
 
+        #Route for swagger resources
         - id: swagger-resources-patient-route
           uri: http://patient-service:4000
           predicates:
             - Path=/v3/api-docs/**
+
