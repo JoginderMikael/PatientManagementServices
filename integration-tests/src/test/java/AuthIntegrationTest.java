@@ -1,28 +1,26 @@
 import io.restassured.RestAssured;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.notNullValue;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class AuthIntegrationTest {
     @BeforeAll
-    static void setUp(){
+    static void setUp() {
         RestAssured.baseURI = "http://localhost:4004";
     }
 
-    @Test
-    public void shouldReturnOkWithValidToken(){
-        String loginPayload = """
+    private String login(String email, String password) {
+        String loginPayload = String.format("""
                 {
-                    "email": "testuser@test.com",
-                    "password": "password123"
+                    "email": "%s",
+                    "password": "%s"
                 }
-                """;
+                """, email, password);
 
-        Response response = given()
+        return given()
                 .contentType("application/json")
                 .body(loginPayload)
                 .when()
@@ -31,13 +29,18 @@ public class AuthIntegrationTest {
                 .statusCode(200)
                 .body("token", notNullValue())
                 .extract()
-                .response();
-
-        System.out.println("Generated Token: " + response.jsonPath().getString("token"));
+                .jsonPath()
+                .getString("token");
     }
 
     @Test
-    public void shouldReturnUnauthorizedOnInValidToken(){
+    public void shouldReturnTokenWithValidCredentials() {
+        String token = login("testuser@test.com", "password123");
+        assertNotNull(token);
+    }
+
+    @Test
+    public void shouldReturnUnauthorizedOnInvalidCredentials() {
         String loginPayload = """
                 {
                     "email": "invalid_user@test.com",
@@ -54,6 +57,31 @@ public class AuthIntegrationTest {
                 .statusCode(401);
     }
 
+    @Test
+    public void shouldValidateBearerTokenSuccessfully() {
+        String token = login("testuser@test.com", "password123");
 
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("auth/validate")
+                .then()
+                .statusCode(200);
+    }
 
+    @Test
+    public void shouldRejectInvalidOrMissingBearerToken() {
+        given()
+                .when()
+                .get("auth/validate")
+                .then()
+                .statusCode(400);
+
+        given()
+                .header("Authorization", "Bearer not-a-real-token")
+                .when()
+                .get("auth/validate")
+                .then()
+                .statusCode(401);
+    }
 }
