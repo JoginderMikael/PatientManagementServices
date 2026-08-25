@@ -1,0 +1,13 @@
+git\jogindermikael\appointmentservice\CancellationRequest.class
+git\jogindermikael\appointmentservice\ConsentFormRequest.class
+git\jogindermikael\appointmentservice\VirtualConsultationRequest.class
+git\jogindermikael\appointmentservice\AppointmentServiceApplication.class
+git\jogindermikael\appointmentservice\AppointmentRequest.class
+git\jogindermikael\appointmentservice\WaitlistRequest.class
+git\jogindermikael\appointmentservice\Appointment.class
+git\jogindermikael\appointmentservice\AppointmentController.class
+git\jogindermikael\appointmentservice\VirtualConsultation.class
+git\jogindermikael\appointmentservice\ConsentForm.class
+git\jogindermikael\appointmentservice\DoctorScheduleRequest.class
+git\jogindermikael\appointmentservice\DoctorSchedule.class
+git\jogindermikael\appointmentservice\WaitlistEntry.class

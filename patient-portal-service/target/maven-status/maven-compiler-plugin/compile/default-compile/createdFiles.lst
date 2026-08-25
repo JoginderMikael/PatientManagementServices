@@ -1,0 +1,9 @@
+git\jogindermikael\patientportalservice\RecordAccessRequest.class
+git\jogindermikael\patientportalservice\RecordAccessCommand.class
+git\jogindermikael\patientportalservice\PortalAppointmentRequest.class
+git\jogindermikael\patientportalservice\PortalPayment.class
+git\jogindermikael\patientportalservice\PatientPortalServiceApplication.class
+git\jogindermikael\patientportalservice\PortalOverview.class
+git\jogindermikael\patientportalservice\PortalPaymentCommand.class
+git\jogindermikael\patientportalservice\PatientPortalController.class
+git\jogindermikael\patientportalservice\PortalAppointmentCommand.class

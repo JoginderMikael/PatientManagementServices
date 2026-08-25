@@ -38,8 +38,56 @@ The project consists of the following microservices:
 - **Responsibilities**:
     - Consuming patient events from **Kafka**.
     - Aggregating data for health analytics and reporting.
+    - Managing population health trends, chronic disease cohorts, and regulatory report generation.
 
-### 6. Infrastructure
+### 6. Appointment & Scheduling Service
+- **Role**: Scheduling and telemedicine coordination.
+- **Responsibilities**:
+    - Managing doctor schedules, patient bookings, cancellations, and waitlists.
+    - Creating virtual consultation rooms and capturing digital consent forms.
+
+### 7. Electronic Health Records (EHR) Service
+- **Role**: Clinical record management.
+- **Responsibilities**:
+    - Storing medical histories, diagnoses, prescriptions, lab results, and vaccination records.
+    - Importing external laboratory results from LIS-style payloads.
+
+### 8. Insurance & Claims Service
+- **Role**: Insurance administration.
+- **Responsibilities**:
+    - Managing patient insurance policies.
+    - Verifying coverage and processing insurance claims for billing workflows.
+
+### 9. Notification Service
+- **Role**: Centralized patient and staff communication hub.
+- **Responsibilities**:
+    - Queuing email, SMS, and push notifications.
+    - Supporting appointment reminders, billing alerts, and MFA code delivery.
+
+### 10. Inventory & Pharmacy Service
+- **Role**: Supply and medication inventory control.
+- **Responsibilities**:
+    - Tracking medical supplies and medication stock.
+    - Receiving EHR prescriptions, dispensing medication, and creating medication charges.
+
+### 11. Audit & Compliance Service
+- **Role**: Compliance-grade access logging.
+- **Responsibilities**:
+    - Capturing who accessed or changed patient records, when, and why.
+    - Searching patient-specific audit trails for HIPAA-oriented review.
+
+### 12. Patient Portal Service
+- **Role**: Patient-facing workflow API.
+- **Responsibilities**:
+    - Allowing patients to request appointments, request records, and submit bill payments.
+    - Providing a patient portal overview.
+
+### 13. Staff Dashboard Service
+- **Role**: Clinical staff workflow API.
+- **Responsibilities**:
+    - Managing daily rounds, patient chart summaries, and staff tasks.
+
+### 14. Infrastructure
 - **Role**: Deployment and environment configuration.
 - **Responsibilities**:
     - Cloud infrastructure management (likely using AWS CDK).

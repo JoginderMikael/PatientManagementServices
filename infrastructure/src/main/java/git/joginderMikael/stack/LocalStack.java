@@ -69,6 +69,32 @@ public class LocalStack extends Stack {
                 List.of(4002), null, null);
         if (mskCluster != null) analyticsService.getNode().addDependency(mskCluster);
 
+        FargateService appointmentService = createFargateService("AppointmentService", "appointment-service",
+                List.of(4010), null, null);
+
+        FargateService ehrService = createFargateService("EhrService", "ehr-service",
+                List.of(4011), null, null);
+
+        FargateService insuranceService = createFargateService("InsuranceService", "insurance-service",
+                List.of(4012), null, null);
+
+        FargateService notificationService = createFargateService("NotificationService", "notification-service",
+                List.of(4013), null, null);
+        if (mskCluster != null) notificationService.getNode().addDependency(mskCluster);
+
+        FargateService inventoryPharmacyService = createFargateService("InventoryPharmacyService", "inventory-pharmacy-service",
+                List.of(4014), null, null);
+
+        FargateService auditComplianceService = createFargateService("AuditComplianceService", "audit-compliance-service",
+                List.of(4015), null, null);
+        if (mskCluster != null) auditComplianceService.getNode().addDependency(mskCluster);
+
+        FargateService patientPortalService = createFargateService("PatientPortalService", "patient-portal-service",
+                List.of(4016), null, null);
+
+        FargateService staffDashboardService = createFargateService("StaffDashboardService", "staff-dashboard-service",
+                List.of(4017), null, null);
+
         FargateService patientService = createFargateService("PatientService", "patient-service",
                 List.of(4000),
                 patientServiceDb,
@@ -80,6 +106,15 @@ public class LocalStack extends Stack {
         if (patientDbHealthCheck != null) patientService.getNode().addDependency(patientDbHealthCheck);
         patientService.getNode().addDependency(billingService);
         if (mskCluster != null) patientService.getNode().addDependency(mskCluster);
+        appointmentService.getNode().addDependency(patientService);
+        ehrService.getNode().addDependency(patientService);
+        insuranceService.getNode().addDependency(billingService);
+        notificationService.getNode().addDependency(appointmentService);
+        inventoryPharmacyService.getNode().addDependency(ehrService);
+        auditComplianceService.getNode().addDependency(patientService);
+        patientPortalService.getNode().addDependency(patientService);
+        patientPortalService.getNode().addDependency(appointmentService);
+        staffDashboardService.getNode().addDependency(ehrService);
 
         createApiGatewayService();
 

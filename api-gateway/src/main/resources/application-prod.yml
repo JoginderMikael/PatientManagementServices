@@ -10,6 +10,24 @@ springdoc:
         url: /auth-v3-api-docs
       - name: patient-service
         url: /patient-v3-api-docs
+      - name: analytics-service
+        url: /analytics-v3-api-docs
+      - name: appointment-service
+        url: /appointment-v3-api-docs
+      - name: ehr-service
+        url: /ehr-v3-api-docs
+      - name: insurance-service
+        url: /insurance-v3-api-docs
+      - name: notification-service
+        url: /notification-v3-api-docs
+      - name: inventory-pharmacy-service
+        url: /inventory-pharmacy-v3-api-docs
+      - name: audit-compliance-service
+        url: /audit-compliance-v3-api-docs
+      - name: patient-portal-service
+        url: /patient-portal-v3-api-docs
+      - name: staff-dashboard-service
+        url: /staff-dashboard-v3-api-docs
   api-docs:
     enabled: true
 
@@ -36,6 +54,78 @@ spring:
             - StripPrefix=1
             - JwtValidation
 
+        - id: analytics-service-route
+          uri: http://host.docker.internal:4002
+          predicates:
+            - Path=/api/analytics/**
+          filters:
+            - StripPrefix=1
+            - JwtValidation
+
+        - id: appointment-service-route
+          uri: http://host.docker.internal:4010
+          predicates:
+            - Path=/api/appointments/**
+          filters:
+            - StripPrefix=1
+            - JwtValidation
+
+        - id: ehr-service-route
+          uri: http://host.docker.internal:4011
+          predicates:
+            - Path=/api/ehr/**
+          filters:
+            - StripPrefix=1
+            - JwtValidation
+
+        - id: insurance-service-route
+          uri: http://host.docker.internal:4012
+          predicates:
+            - Path=/api/insurance/**
+          filters:
+            - StripPrefix=1
+            - JwtValidation
+
+        - id: notification-service-route
+          uri: http://host.docker.internal:4013
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - StripPrefix=1
+            - JwtValidation
+
+        - id: inventory-pharmacy-service-route
+          uri: http://host.docker.internal:4014
+          predicates:
+            - Path=/api/inventory-pharmacy/**
+          filters:
+            - StripPrefix=1
+            - JwtValidation
+
+        - id: audit-compliance-service-route
+          uri: http://host.docker.internal:4015
+          predicates:
+            - Path=/api/audit/**
+          filters:
+            - StripPrefix=1
+            - JwtValidation
+
+        - id: patient-portal-service-route
+          uri: http://host.docker.internal:4016
+          predicates:
+            - Path=/api/portal/**
+          filters:
+            - StripPrefix=1
+            - JwtValidation
+
+        - id: staff-dashboard-service-route
+          uri: http://host.docker.internal:4017
+          predicates:
+            - Path=/api/staff-dashboard/**
+          filters:
+            - StripPrefix=1
+            - JwtValidation
+
         #Route for Patient service docs
         - id: patient-v3-api-docs-route
           uri: http://host.docker.internal:4000
@@ -47,4 +137,49 @@ spring:
           uri: http://host.docker.internal:4005
           predicates:
             - Path=/auth-v3-api-docs/**
+
+        - id: analytics-v3-api-docs-route
+          uri: http://host.docker.internal:4002
+          predicates:
+            - Path=/analytics-v3-api-docs/**
+
+        - id: appointment-v3-api-docs-route
+          uri: http://host.docker.internal:4010
+          predicates:
+            - Path=/appointment-v3-api-docs/**
+
+        - id: ehr-v3-api-docs-route
+          uri: http://host.docker.internal:4011
+          predicates:
+            - Path=/ehr-v3-api-docs/**
+
+        - id: insurance-v3-api-docs-route
+          uri: http://host.docker.internal:4012
+          predicates:
+            - Path=/insurance-v3-api-docs/**
+
+        - id: notification-v3-api-docs-route
+          uri: http://host.docker.internal:4013
+          predicates:
+            - Path=/notification-v3-api-docs/**
+
+        - id: inventory-pharmacy-v3-api-docs-route
+          uri: http://host.docker.internal:4014
+          predicates:
+            - Path=/inventory-pharmacy-v3-api-docs/**
+
+        - id: audit-compliance-v3-api-docs-route
+          uri: http://host.docker.internal:4015
+          predicates:
+            - Path=/audit-compliance-v3-api-docs/**
+
+        - id: patient-portal-v3-api-docs-route
+          uri: http://host.docker.internal:4016
+          predicates:
+            - Path=/patient-portal-v3-api-docs/**
+
+        - id: staff-dashboard-v3-api-docs-route
+          uri: http://host.docker.internal:4017
+          predicates:
+            - Path=/staff-dashboard-v3-api-docs/**
 

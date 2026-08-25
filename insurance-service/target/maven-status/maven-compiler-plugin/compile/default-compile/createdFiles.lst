@@ -1,0 +1,9 @@
+git\jogindermikael\insuranceservice\InsurancePolicy.class
+git\jogindermikael\insuranceservice\InsuranceController.class
+git\jogindermikael\insuranceservice\Claim.class
+git\jogindermikael\insuranceservice\InsuranceServiceApplication.class
+git\jogindermikael\insuranceservice\CoverageVerification.class
+git\jogindermikael\insuranceservice\ClaimRequest.class
+git\jogindermikael\insuranceservice\CoverageVerificationRequest.class
+git\jogindermikael\insuranceservice\PolicyRequest.class
+git\jogindermikael\insuranceservice\ClaimAdjudicationRequest.class
