@@ -32,13 +32,25 @@ public class LocalStack extends Stack {
 
         this.vpc = createVpc();
 
-        DatabaseInstance authServiceDb = createDatabase("AuthServiceDB", "auth-service-db");
-        DatabaseInstance patientServiceDb = createDatabase("PatientServiceDB", "patient-service-db");
+        boolean isLocalStack = true; // Flag to toggle between local and cloud
 
-        CfnHealthCheck authDbHealthCheck = createDbHealthCheck(authServiceDb, "AuthServiceDBHealthCheck");
-        CfnHealthCheck patientDbHealthCheck = createDbHealthCheck(patientServiceDb, "PatientServiceDBHealthCheck");
+        DatabaseInstance authServiceDb = null;
+        DatabaseInstance patientServiceDb = null;
+        CfnHealthCheck authDbHealthCheck = null;
+        CfnHealthCheck patientDbHealthCheck = null;
 
-        CfnCluster mskCluster = createMskCluster();
+        if (!isLocalStack) {
+            authServiceDb = createDatabase("AuthServiceDB", "auth-service-db");
+            patientServiceDb = createDatabase("PatientServiceDB", "patient-service-db");
+
+            authDbHealthCheck = createDbHealthCheck(authServiceDb, "AuthServiceDBHealthCheck");
+            patientDbHealthCheck = createDbHealthCheck(patientServiceDb, "PatientServiceDBHealthCheck");
+        }
+
+        CfnCluster mskCluster = null;
+        if (!isLocalStack) {
+            mskCluster = createMskCluster();
+        }
 
         this.ecsCluster = createEcsCluster();
 
@@ -46,8 +58,8 @@ public class LocalStack extends Stack {
                 List.of(4005),
                 authServiceDb,
                 Map.of("JWT_SECRET", "4a6b2c8e9f1a3d5c7b0e2f4a6c8e0d1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d"));
-        authService.getNode().addDependency(authDbHealthCheck);
-        authService.getNode().addDependency(authServiceDb);
+        if (authDbHealthCheck != null) authService.getNode().addDependency(authDbHealthCheck);
+        if (authServiceDb != null) authService.getNode().addDependency(authServiceDb);
 
         FargateService billingService = createFargateService("BillingService", "billing-service",
                 List.of(4001, 9001),
@@ -55,7 +67,7 @@ public class LocalStack extends Stack {
 
         FargateService analyticsService = createFargateService("AnalyticsService", "analytics-service",
                 List.of(4002), null, null);
-        analyticsService.getNode().addDependency(mskCluster);
+        if (mskCluster != null) analyticsService.getNode().addDependency(mskCluster);
 
         FargateService patientService = createFargateService("PatientService", "patient-service",
                 List.of(4000),
@@ -64,10 +76,10 @@ public class LocalStack extends Stack {
                         "BILLING_SERVICE_ADDRESS","host.docker.internal",
                         "BILLING_SERVICE_GRPC_PORT", "9001"
                 ));
-        patientService.getNode().addDependency(patientServiceDb);
-        patientService.getNode().addDependency(patientDbHealthCheck);
+        if (patientServiceDb != null) patientService.getNode().addDependency(patientServiceDb);
+        if (patientDbHealthCheck != null) patientService.getNode().addDependency(patientDbHealthCheck);
         patientService.getNode().addDependency(billingService);
-        patientService.getNode().addDependency(mskCluster);
+        if (mskCluster != null) patientService.getNode().addDependency(mskCluster);
 
         createApiGatewayService();
 
@@ -99,12 +111,15 @@ public class LocalStack extends Stack {
 
 
     private CfnHealthCheck createDbHealthCheck(DatabaseInstance db, String id) {
+        // LocalStack doesn't provide valid RDS endpoint attributes; use local defaults for health checks
         return CfnHealthCheck.Builder
                 .create(this, id)
                 .healthCheckConfig(CfnHealthCheck.HealthCheckConfigProperty.builder()
                         .type("TCP")
-                        .port(Token.asNumber(db.getDbInstanceEndpointPort()))
-                        .ipAddress(db.getDbInstanceEndpointAddress())
+                        // Postgres default port for local DB emulation
+                        .port(5432)
+                        // Use loopback address for local health checks
+                        .ipAddress("127.0.0.1")
                         .requestInterval(30)
                         .failureThreshold(3)
                         .build())
@@ -131,9 +146,6 @@ public class LocalStack extends Stack {
         return Cluster.Builder
                 .create(this, "PatientManagementCluster")
                 .vpc(vpc)
-                .defaultCloudMapNamespace(CloudMapNamespaceOptions.builder()
-                        .name("patient-management-local")
-                        .build())
                 .build();
     }
 
@@ -248,6 +260,9 @@ public class LocalStack extends Stack {
 
 
     public static void main(final String[] args) {
+        // Workaround for ENOTEMPTY error on Windows during jsii cleanup
+        // Set as early as possible via static block
+        System.setProperty("jsii.keep", "true");
 
         System.out.println("Starting synthesis...");
 

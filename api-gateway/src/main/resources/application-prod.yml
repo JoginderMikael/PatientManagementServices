@@ -1,0 +1,50 @@
+server:
+  port: 4004
+
+
+#http://localhost:4004/swagger-ui.html
+springdoc:
+  swagger-ui:
+    urls:
+      - name: auth-service
+        url: /auth-v3-api-docs
+      - name: patient-service
+        url: /patient-v3-api-docs
+  api-docs:
+    enabled: true
+
+spring:
+  cloud:
+    gateway:
+      routes:
+
+        #Route for /auth/** to auth service
+        - id: auth-service-route
+          uri: http://host.docker.internal:4005
+          predicates:
+            - Path=/auth/**
+          filters:
+            - StripPrefix=1
+
+
+        # Route for /api/patients/** to patient service
+        - id: patient-service-route
+          uri: http://host.docker.internal:4000
+          predicates:
+            - Path=/api/patients/**
+          filters:
+            - StripPrefix=1
+            - JwtValidation
+
+        #Route for Patient service docs
+        - id: patient-v3-api-docs-route
+          uri: http://host.docker.internal:4000
+          predicates:
+            - Path=/patient-v3-api-docs/**
+
+        #Route for Auth service docs
+        - id: auth-v3-api-docs-route
+          uri: http://host.docker.internal:4005
+          predicates:
+            - Path=/auth-v3-api-docs/**
+
