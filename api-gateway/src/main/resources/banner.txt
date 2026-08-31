@@ -4,5 +4,6 @@
   / ___ \| |_) | | | |_| | (_| | ||  __/\ V  V / (_| | |_| |
  /_/   \_\ .__/|_|  \____|\__,_|\__\___| \_/\_/ \__,_|\__, |
          |_|                                          |___/ 
+Traffic cop on duty. No token, no snacks.
 ${application.title} ${application.version}
 Powered by Spring Boot ${spring-boot.version}

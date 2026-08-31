@@ -4,5 +4,6 @@
   / ___ \ |_| | |_| | | |  ___) |  __/ |   \ V /| | (_|  __/
  /_/   \_\__,_|\__|_| |_| |____/ \___|_|    \_/ |_|\___\___|
                                                             
+Minting tokens. Guarding doors.
 ${application.title} ${application.version}
 Powered by Spring Boot ${spring-boot.version}

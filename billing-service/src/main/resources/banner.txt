@@ -4,5 +4,6 @@
  | |_) | | | | | | | | (_| |  ___) |  __/ |   \ V /| | (_|  __/
  |____/|_|_|_|_|_| |_|\__, | |____/ \___|_|    \_/ |_|\___\___|
                       |___/                                    
+Counting coins so clinicians do not have to.
 ${application.title} ${application.version}
 Powered by Spring Boot ${spring-boot.version}
