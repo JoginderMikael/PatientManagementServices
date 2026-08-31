@@ -1,0 +1,275 @@
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    image: api-gateway:latest
+    container_name: api-gateway
+    environment:
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+    ports:
+      - "4004:4004"
+    depends_on:
+      auth-service:
+        condition: service_started
+      patient-service:
+        condition: service_started
+      analytics-service:
+        condition: service_started
+      appointment-service:
+        condition: service_started
+      ehr-service:
+        condition: service_started
+      insurance-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+      inventory-pharmacy-service:
+        condition: service_started
+      audit-compliance-service:
+        condition: service_started
+      patient-portal-service:
+        condition: service_started
+      staff-dashboard-service:
+        condition: service_started
+    networks:
+      - internal
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    image: auth-service:latest
+    container_name: auth-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-service-db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
+      SPRING_SQL_INIT_MODE: ${SPRING_SQL_INIT_MODE}
+      JWT_SECRET: ${JWT_SECRET}
+    expose:
+      - "4005"
+    depends_on:
+      auth-service-db:
+        condition: service_healthy
+    networks:
+      - internal
+
+  auth-service-db:
+    image: postgres:latest
+    container_name: auth-service-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5001:5432"
+    volumes:
+      - auth-service-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  patient-service:
+    build:
+      context: ./patient-service
+      dockerfile: Dockerfile
+    image: patient-service:latest
+    container_name: patient-service
+    environment:
+      BILLING_SERVICE_ADDRESS: ${BILLING_SERVICE_ADDRESS}
+      BILLING_SERVICE_GRPC_PORT: ${BILLING_SERVICE_GRPC_PORT}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://patient-service-db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      SPRING_SQL_INIT_MODE: ${SPRING_SQL_INIT_MODE}
+    expose:
+      - "4000"
+    depends_on:
+      patient-service-db:
+        condition: service_healthy
+      billing-service:
+        condition: service_started
+      kafka:
+        condition: service_started
+    networks:
+      - internal
+
+  patient-service-db:
+    image: postgres:latest
+    container_name: patient-service-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5000:5432"
+    volumes:
+      - patient-service-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  billing-service:
+    build:
+      context: ./billing-service
+      dockerfile: Dockerfile
+    image: billing-service:latest
+    container_name: billing-service
+    ports:
+      - "4001:4001"
+      - "9001:9001"
+    networks:
+      - internal
+
+  analytics-service:
+    build:
+      context: ./analytics-service
+      dockerfile: Dockerfile
+    image: analytics-service:latest
+    container_name: analytics-service
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+    ports:
+      - "4002:4002"
+    depends_on:
+      kafka:
+        condition: service_started
+    networks:
+      - internal
+
+  appointment-service:
+    build:
+      context: ./appointment-service
+      dockerfile: Dockerfile
+    image: appointment-service:latest
+    container_name: appointment-service
+    expose:
+      - "4010"
+    networks:
+      - internal
+
+  ehr-service:
+    build:
+      context: ./ehr-service
+      dockerfile: Dockerfile
+    image: ehr-service:latest
+    container_name: ehr-service
+    expose:
+      - "4011"
+    networks:
+      - internal
+
+  insurance-service:
+    build:
+      context: ./insurance-service
+      dockerfile: Dockerfile
+    image: insurance-service:latest
+    container_name: insurance-service
+    expose:
+      - "4012"
+    networks:
+      - internal
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    image: notification-service:latest
+    container_name: notification-service
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+    expose:
+      - "4013"
+    depends_on:
+      kafka:
+        condition: service_started
+    networks:
+      - internal
+
+  inventory-pharmacy-service:
+    build:
+      context: ./inventory-pharmacy-service
+      dockerfile: Dockerfile
+    image: inventory-pharmacy-service:latest
+    container_name: inventory-pharmacy-service
+    expose:
+      - "4014"
+    networks:
+      - internal
+
+  audit-compliance-service:
+    build:
+      context: ./audit-compliance-service
+      dockerfile: Dockerfile
+    image: audit-compliance-service:latest
+    container_name: audit-compliance-service
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+    expose:
+      - "4015"
+    depends_on:
+      kafka:
+        condition: service_started
+    networks:
+      - internal
+
+  patient-portal-service:
+    build:
+      context: ./patient-portal-service
+      dockerfile: Dockerfile
+    image: patient-portal-service:latest
+    container_name: patient-portal-service
+    expose:
+      - "4016"
+    networks:
+      - internal
+
+  staff-dashboard-service:
+    build:
+      context: ./staff-dashboard-service
+      dockerfile: Dockerfile
+    image: staff-dashboard-service:latest
+    container_name: staff-dashboard-service
+    expose:
+      - "4017"
+    networks:
+      - internal
+
+  kafka:
+    image: dhi.io/kafka:4-debian-native
+    container_name: kafka
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS}
+      KAFKA_CONTROLLER_LISTENER_NAMES: ${KAFKA_CONTROLLER_LISTENER_NAMES}
+      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_CONTROLLER_QUORUM_VOTERS}
+      KAFKA_LISTENERS: ${KAFKA_LISTENERS}
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}
+      KAFKA_PROCESS_ROLES: ${KAFKA_PROCESS_ROLES}
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: ${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR}
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR}
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  auth-service-db-data:
+  patient-service-db-data:
