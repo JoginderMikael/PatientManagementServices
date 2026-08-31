@@ -1,0 +1,13 @@
+  _____ _   _ ____  
+ | ____| | | |  _ \ 
+ |  _| | |_| | |_) |
+ | |___|  _  |  _ < 
+ |_____|_| |_|_| \_\
+  ____                  _          
+ / ___|  ___ _ ____   _(_) ___ ___ 
+ \___ \ / _ \ '__\ \ / / |/ __/ _ \
+  ___) |  __/ |   \ V /| | (_|  __/
+ |____/ \___|_|    \_/ |_|\___\___|
+Clinical notes in formation. Chaos asked to wait outside.
+${application.title} ${application.version}
+Powered by Spring Boot ${spring-boot.version}
