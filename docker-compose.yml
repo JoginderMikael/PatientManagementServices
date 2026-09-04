@@ -1,16 +1,34 @@
+x-service-env: &service-env
+  JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env to a Base64-encoded key of at least 32 bytes}
+  JWT_ISSUER: ${JWT_ISSUER:-patient-management-auth}
+  JWT_AUDIENCE: ${JWT_AUDIENCE:-patient-management-api}
+  PUBLIC_API_DOCS_ENABLED: ${PUBLIC_API_DOCS_ENABLED:-true}
+  PUBLIC_METRICS_ENABLED: ${PUBLIC_METRICS_ENABLED:-true}
+  MANAGEMENT_TRACING_SAMPLING_PROBABILITY: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:-0.1}
+  LOGGING_LEVEL_ROOT: ${LOGGING_LEVEL_ROOT:-info}
+  AUDIT_CAPTURE_ENABLED: ${AUDIT_CAPTURE_ENABLED:-true}
+
+x-database-env: &database-env
+  SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
+  SPRING_SQL_INIT_MODE: ${SPRING_SQL_INIT_MODE:-never}
+  SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED:-true}
+  SPRING_FLYWAY_LOCATIONS: ${SPRING_FLYWAY_LOCATIONS:-classpath:db/migration,classpath:db/dev-migration}
+
 services:
   api-gateway:
     build:
-      context: ./api-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./api-gateway/Dockerfile
     image: api-gateway:latest
     container_name: api-gateway
     environment:
-      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+      <<: *service-env
     ports:
       - "4004:4004"
     depends_on:
       auth-service:
+        condition: service_started
+      billing-service:
         condition: service_started
       patient-service:
         condition: service_started
@@ -37,17 +55,16 @@ services:
 
   auth-service:
     build:
-      context: ./auth-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./auth-service/Dockerfile
     image: auth-service:latest
     container_name: auth-service
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-service-db:5432/${POSTGRES_DB}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
-      SPRING_SQL_INIT_MODE: ${SPRING_SQL_INIT_MODE}
-      JWT_SECRET: ${JWT_SECRET}
+      <<: [*service-env, *database-env]
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-service-db:5432/${AUTH_SERVICE_DB_NAME:-auth_service}
+      SPRING_DATASOURCE_USERNAME: ${AUTH_SERVICE_DB_USERNAME:-auth_service}
+      SPRING_DATASOURCE_PASSWORD: ${AUTH_SERVICE_DB_PASSWORD:-auth_service_dev_password}
+      JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL:-PT15M}
     expose:
       - "4005"
     depends_on:
@@ -57,16 +74,16 @@ services:
       - internal
 
   auth-service-db:
-    image: postgres:latest
+    image: postgres:16-alpine
     container_name: auth-service-db
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${AUTH_SERVICE_DB_NAME:-auth_service}
+      POSTGRES_USER: ${AUTH_SERVICE_DB_USERNAME:-auth_service}
+      POSTGRES_PASSWORD: ${AUTH_SERVICE_DB_PASSWORD:-auth_service_dev_password}
     ports:
       - "5001:5432"
     volumes:
-      - auth-service-db-data:/var/lib/postgresql
+      - auth-service-db-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -77,19 +94,18 @@ services:
 
   patient-service:
     build:
-      context: ./patient-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./patient-service/Dockerfile
     image: patient-service:latest
     container_name: patient-service
     environment:
-      BILLING_SERVICE_ADDRESS: ${BILLING_SERVICE_ADDRESS}
-      BILLING_SERVICE_GRPC_PORT: ${BILLING_SERVICE_GRPC_PORT}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://patient-service-db:5432/${POSTGRES_DB}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
-      SPRING_SQL_INIT_MODE: ${SPRING_SQL_INIT_MODE}
+      <<: [*service-env, *database-env]
+      BILLING_SERVICE_ADDRESS: ${BILLING_SERVICE_ADDRESS:-billing-service}
+      BILLING_SERVICE_GRPC_PORT: ${BILLING_SERVICE_GRPC_PORT:-9001}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://patient-service-db:5432/${PATIENT_SERVICE_DB_NAME:-patient_service}
+      SPRING_DATASOURCE_USERNAME: ${PATIENT_SERVICE_DB_USERNAME:-patient_service}
+      SPRING_DATASOURCE_PASSWORD: ${PATIENT_SERVICE_DB_PASSWORD:-patient_service_dev_password}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
     expose:
       - "4000"
     depends_on:
@@ -103,16 +119,16 @@ services:
       - internal
 
   patient-service-db:
-    image: postgres:latest
+    image: postgres:16-alpine
     container_name: patient-service-db
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${PATIENT_SERVICE_DB_NAME:-patient_service}
+      POSTGRES_USER: ${PATIENT_SERVICE_DB_USERNAME:-patient_service}
+      POSTGRES_PASSWORD: ${PATIENT_SERVICE_DB_PASSWORD:-patient_service_dev_password}
     ports:
       - "5000:5432"
     volumes:
-      - patient-service-db-data:/var/lib/postgresql
+      - patient-service-db-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -123,24 +139,52 @@ services:
 
   billing-service:
     build:
-      context: ./billing-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./billing-service/Dockerfile
     image: billing-service:latest
     container_name: billing-service
+    environment:
+      <<: [*service-env, *database-env]
+      GRPC_SERVER_PORT: ${BILLING_SERVICE_GRPC_PORT:-9001}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://billing-service-db:5432/${BILLING_SERVICE_DB_NAME:-billing_service}
+      SPRING_DATASOURCE_USERNAME: ${BILLING_SERVICE_DB_USERNAME:-billing_service}
+      SPRING_DATASOURCE_PASSWORD: ${BILLING_SERVICE_DB_PASSWORD:-billing_service_dev_password}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
     ports:
       - "4001:4001"
       - "9001:9001"
+    depends_on:
+      billing-service-db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     networks:
       - internal
 
+  billing-service-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${BILLING_SERVICE_DB_NAME:-billing_service}
+      POSTGRES_USER: ${BILLING_SERVICE_DB_USERNAME:-billing_service}
+      POSTGRES_PASSWORD: ${BILLING_SERVICE_DB_PASSWORD:-billing_service_dev_password}
+    ports: ["5002:5432"]
+    volumes: [billing-service-db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+
   analytics-service:
     build:
-      context: ./analytics-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./analytics-service/Dockerfile
     image: analytics-service:latest
     container_name: analytics-service
     environment:
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      <<: *service-env
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
     ports:
       - "4002:4002"
     depends_on:
@@ -151,32 +195,86 @@ services:
 
   appointment-service:
     build:
-      context: ./appointment-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./appointment-service/Dockerfile
     image: appointment-service:latest
     container_name: appointment-service
+    environment:
+      <<: [*service-env, *database-env]
+      SPRING_DATASOURCE_URL: jdbc:postgresql://appointment-service-db:5432/${APPOINTMENT_SERVICE_DB_NAME:-appointment_service}
+      SPRING_DATASOURCE_USERNAME: ${APPOINTMENT_SERVICE_DB_USERNAME:-appointment_service}
+      SPRING_DATASOURCE_PASSWORD: ${APPOINTMENT_SERVICE_DB_PASSWORD:-appointment_service_dev_password}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
     expose:
       - "4010"
+    depends_on:
+      appointment-service-db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     networks:
       - internal
+
+  appointment-service-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${APPOINTMENT_SERVICE_DB_NAME:-appointment_service}
+      POSTGRES_USER: ${APPOINTMENT_SERVICE_DB_USERNAME:-appointment_service}
+      POSTGRES_PASSWORD: ${APPOINTMENT_SERVICE_DB_PASSWORD:-appointment_service_dev_password}
+    ports: ["5003:5432"]
+    volumes: [appointment-service-db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
 
   ehr-service:
     build:
-      context: ./ehr-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./ehr-service/Dockerfile
     image: ehr-service:latest
     container_name: ehr-service
+    environment:
+      <<: [*service-env, *database-env]
+      SPRING_DATASOURCE_URL: jdbc:postgresql://ehr-service-db:5432/${EHR_SERVICE_DB_NAME:-ehr_service}
+      SPRING_DATASOURCE_USERNAME: ${EHR_SERVICE_DB_USERNAME:-ehr_service}
+      SPRING_DATASOURCE_PASSWORD: ${EHR_SERVICE_DB_PASSWORD:-ehr_service_dev_password}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
     expose:
       - "4011"
+    depends_on:
+      ehr-service-db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     networks:
       - internal
 
+  ehr-service-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${EHR_SERVICE_DB_NAME:-ehr_service}
+      POSTGRES_USER: ${EHR_SERVICE_DB_USERNAME:-ehr_service}
+      POSTGRES_PASSWORD: ${EHR_SERVICE_DB_PASSWORD:-ehr_service_dev_password}
+    ports: ["5004:5432"]
+    volumes: [ehr-service-db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+
   insurance-service:
     build:
-      context: ./insurance-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./insurance-service/Dockerfile
     image: insurance-service:latest
     container_name: insurance-service
+    environment:
+      <<: *service-env
     expose:
       - "4012"
     networks:
@@ -184,26 +282,52 @@ services:
 
   notification-service:
     build:
-      context: ./notification-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./notification-service/Dockerfile
     image: notification-service:latest
     container_name: notification-service
     environment:
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      <<: [*service-env, *database-env]
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://notification-service-db:5432/${NOTIFICATION_SERVICE_DB_NAME:-notification_service}
+      SPRING_DATASOURCE_USERNAME: ${NOTIFICATION_SERVICE_DB_USERNAME:-notification_service}
+      SPRING_DATASOURCE_PASSWORD: ${NOTIFICATION_SERVICE_DB_PASSWORD:-notification_service_dev_password}
+      NOTIFICATION_PROVIDER_WEBHOOK_URL: ${NOTIFICATION_PROVIDER_WEBHOOK_URL:-}
+      NOTIFICATION_PROVIDER_BEARER_TOKEN: ${NOTIFICATION_PROVIDER_BEARER_TOKEN:-}
+      NOTIFICATION_MAX_ATTEMPTS: ${NOTIFICATION_MAX_ATTEMPTS:-5}
     expose:
       - "4013"
     depends_on:
+      notification-service-db:
+        condition: service_healthy
       kafka:
         condition: service_started
     networks:
       - internal
 
+  notification-service-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${NOTIFICATION_SERVICE_DB_NAME:-notification_service}
+      POSTGRES_USER: ${NOTIFICATION_SERVICE_DB_USERNAME:-notification_service}
+      POSTGRES_PASSWORD: ${NOTIFICATION_SERVICE_DB_PASSWORD:-notification_service_dev_password}
+    ports: ["5005:5432"]
+    volumes: [notification-service-db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+
   inventory-pharmacy-service:
     build:
-      context: ./inventory-pharmacy-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./inventory-pharmacy-service/Dockerfile
     image: inventory-pharmacy-service:latest
     container_name: inventory-pharmacy-service
+    environment:
+      <<: *service-env
     expose:
       - "4014"
     networks:
@@ -211,26 +335,49 @@ services:
 
   audit-compliance-service:
     build:
-      context: ./audit-compliance-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./audit-compliance-service/Dockerfile
     image: audit-compliance-service:latest
     container_name: audit-compliance-service
     environment:
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      <<: [*service-env, *database-env]
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://audit-compliance-service-db:5432/${AUDIT_SERVICE_DB_NAME:-audit_service}
+      SPRING_DATASOURCE_USERNAME: ${AUDIT_SERVICE_DB_USERNAME:-audit_service}
+      SPRING_DATASOURCE_PASSWORD: ${AUDIT_SERVICE_DB_PASSWORD:-audit_service_dev_password}
     expose:
       - "4015"
     depends_on:
+      audit-compliance-service-db:
+        condition: service_healthy
       kafka:
         condition: service_started
     networks:
       - internal
 
+  audit-compliance-service-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${AUDIT_SERVICE_DB_NAME:-audit_service}
+      POSTGRES_USER: ${AUDIT_SERVICE_DB_USERNAME:-audit_service}
+      POSTGRES_PASSWORD: ${AUDIT_SERVICE_DB_PASSWORD:-audit_service_dev_password}
+    ports: ["5006:5432"]
+    volumes: [audit-compliance-service-db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+
   patient-portal-service:
     build:
-      context: ./patient-portal-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./patient-portal-service/Dockerfile
     image: patient-portal-service:latest
     container_name: patient-portal-service
+    environment:
+      <<: *service-env
     expose:
       - "4016"
     networks:
@@ -238,10 +385,12 @@ services:
 
   staff-dashboard-service:
     build:
-      context: ./staff-dashboard-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./staff-dashboard-service/Dockerfile
     image: staff-dashboard-service:latest
     container_name: staff-dashboard-service
+    environment:
+      <<: *service-env
     expose:
       - "4017"
     networks:
@@ -251,18 +400,52 @@ services:
     image: dhi.io/kafka:4-debian-native
     container_name: kafka
     environment:
-      KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS}
-      KAFKA_CONTROLLER_LISTENER_NAMES: ${KAFKA_CONTROLLER_LISTENER_NAMES}
-      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_CONTROLLER_QUORUM_VOTERS}
-      KAFKA_LISTENERS: ${KAFKA_LISTENERS}
-      KAFKA_NODE_ID: ${KAFKA_NODE_ID}
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}
-      KAFKA_PROCESS_ROLES: ${KAFKA_PROCESS_ROLES}
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: ${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR}
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR}
+      KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS:-PLAINTEXT://kafka:9092}
+      KAFKA_CONTROLLER_LISTENER_NAMES: ${KAFKA_CONTROLLER_LISTENER_NAMES:-CONTROLLER}
+      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_CONTROLLER_QUORUM_VOTERS:-1@kafka:9093}
+      KAFKA_LISTENERS: ${KAFKA_LISTENERS:-PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093}
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID:-1}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR:-1}
+      KAFKA_PROCESS_ROLES: ${KAFKA_PROCESS_ROLES:-broker,controller}
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: ${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR:-1}
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR:-1}
     ports:
       - "9092:9092"
       - "9093:9093"
+    networks:
+      - internal
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: patient-management-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-lifecycle
+    volumes:
+      - ./ops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/prometheus/rules:/etc/prometheus/rules:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      api-gateway:
+        condition: service_started
+    networks:
+      - internal
+
+  grafana:
+    image: grafana/grafana:11.1.4
+    container_name: patient-management-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      prometheus:
+        condition: service_started
     networks:
       - internal
 
@@ -273,3 +456,8 @@ networks:
 volumes:
   auth-service-db-data:
   patient-service-db-data:
+  billing-service-db-data:
+  appointment-service-db-data:
+  ehr-service-db-data:
+  notification-service-db-data:
+  audit-compliance-service-db-data:

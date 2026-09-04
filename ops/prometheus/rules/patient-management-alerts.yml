@@ -1,0 +1,20 @@
+groups:
+  - name: patient-management-service-alerts
+    rules:
+      - alert: PatientManagementServiceDown
+        expr: up{job=~"api-gateway|.*-service"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} is not reachable"
+          description: "Prometheus has not scraped {{ $labels.job }} successfully for at least 2 minutes."
+
+      - alert: PatientManagementHighServerErrorRate
+        expr: sum by (job) (rate(http_server_requests_seconds_count{job=~"api-gateway|.*-service",status=~"5.."}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} is returning elevated 5xx responses"
+          description: "{{ $labels.job }} has returned more than 0.05 5xx responses per second over 5 minutes."

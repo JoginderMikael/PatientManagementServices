@@ -6,6 +6,7 @@ import git.jogindermikael.insuranceservice.service.InsuranceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@PreAuthorize("hasAnyRole('ADMIN','BILLING_STAFF')")
 @RequestMapping("/insurance")
 @Tag(name = "Insurance & Claims", description = "Patient insurance policies, coverage verification and insurance claims")
 public class InsuranceController {

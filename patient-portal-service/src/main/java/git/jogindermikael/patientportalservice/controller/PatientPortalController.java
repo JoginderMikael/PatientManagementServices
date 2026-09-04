@@ -6,6 +6,7 @@ import git.jogindermikael.patientportalservice.service.PatientPortalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
+@PreAuthorize("hasAnyRole('ADMIN','PATIENT')")
 @RequestMapping("/portal")
 @Tag(name = "Patient Portal", description = "Patient-facing access to records, appointments and bill payments")
 public class PatientPortalController {
@@ -30,7 +32,8 @@ public class PatientPortalController {
 
     @PostMapping("/appointment-requests")
     @Operation(summary = "Request an appointment from the patient portal")
-    public ResponseEntity<PortalAppointmentRequest> requestAppointment(@Valid @RequestBody PortalAppointmentCommand request) {
+    public ResponseEntity<PortalAppointmentRequest> requestAppointment(
+            @Valid @RequestBody PortalAppointmentCommand request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(patientPortalService.requestAppointment(request));
     }
 

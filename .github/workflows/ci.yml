@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  maven-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Verify repository hygiene
+        shell: bash
+        run: |
+          if git ls-files | grep -E '(^|/)(target|cdk\.out|\.idea)(/|$)|(^|/)\.env$|\.iml$'; then
+            echo "Generated output, IDE state, or a local .env file is tracked."
+            exit 1
+          fi
+
+      - name: Validate local Compose configuration
+        env:
+          JWT_SECRET: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+        run: docker compose config --quiet
+
+      - name: Build all modules
+        run: mvn -B clean verify

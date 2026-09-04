@@ -6,6 +6,7 @@ import git.jogindermikael.staffdashboardservice.service.StaffDashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@PreAuthorize("hasAnyRole('ADMIN','CLINICIAN','NURSE')")
 @RequestMapping("/staff-dashboard")
 @Tag(name = "Doctor/Staff Dashboard", description = "Clinical staff rounds, patient charts and task management")
 public class StaffDashboardController {

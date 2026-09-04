@@ -2,66 +2,18 @@ package git.jogindermikael.appointmentservice.repository;
 
 import git.jogindermikael.appointmentservice.model.AppointmentModels.*;
 import org.springframework.stereotype.Repository;
-
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
 public class AppointmentRepository {
-    private final ConcurrentHashMap<UUID, DoctorSchedule> schedules = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<UUID, Appointment> appointments = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<UUID, WaitlistEntry> waitlist = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<UUID, VirtualConsultation> consultations = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<UUID, ConsentForm> consentForms = new ConcurrentHashMap<>();
-
-    public DoctorSchedule saveSchedule(DoctorSchedule schedule) {
-        schedules.put(schedule.id(), schedule);
-        return schedule;
-    }
-
-    public Collection<DoctorSchedule> findSchedules() {
-        return schedules.values();
-    }
-
-    public Appointment saveAppointment(Appointment appointment) {
-        appointments.put(appointment.id(), appointment);
-        return appointment;
-    }
-
-    public Optional<Appointment> findAppointmentById(UUID id) {
-        return Optional.ofNullable(appointments.get(id));
-    }
-
-    public Collection<Appointment> findAppointments() {
-        return appointments.values();
-    }
-
-    public WaitlistEntry saveWaitlistEntry(WaitlistEntry entry) {
-        waitlist.put(entry.id(), entry);
-        return entry;
-    }
-
-    public Collection<WaitlistEntry> findWaitlist() {
-        return waitlist.values();
-    }
-
-    public VirtualConsultation saveVirtualConsultation(VirtualConsultation consultation) {
-        consultations.put(consultation.id(), consultation);
-        return consultation;
-    }
-
-    public Collection<VirtualConsultation> findVirtualConsultations() {
-        return consultations.values();
-    }
-
-    public ConsentForm saveConsentForm(ConsentForm form) {
-        consentForms.put(form.id(), form);
-        return form;
-    }
-
-    public Collection<ConsentForm> findConsentForms() {
-        return consentForms.values();
-    }
+    private final DoctorScheduleJpaRepository schedules; private final AppointmentJpaRepository appointments;
+    private final WaitlistRepository waitlist; private final VirtualConsultationRepository consultations; private final ConsentFormRepository consents;
+    public AppointmentRepository(DoctorScheduleJpaRepository schedules, AppointmentJpaRepository appointments, WaitlistRepository waitlist, VirtualConsultationRepository consultations, ConsentFormRepository consents){this.schedules=schedules;this.appointments=appointments;this.waitlist=waitlist;this.consultations=consultations;this.consents=consents;}
+    public DoctorSchedule saveSchedule(DoctorSchedule value){return schedules.save(value);} public Collection<DoctorSchedule> findSchedules(){return schedules.findAll();}
+    public Appointment saveAppointment(Appointment value){return appointments.save(value);} public Optional<Appointment> findAppointmentById(UUID id){return appointments.findById(id);} public Collection<Appointment> findAppointments(){return appointments.findAll();}
+    public WaitlistEntry saveWaitlistEntry(WaitlistEntry value){return waitlist.save(value);} public Collection<WaitlistEntry> findWaitlist(){return waitlist.findAll();}
+    public VirtualConsultation saveVirtualConsultation(VirtualConsultation value){return consultations.save(value);} public Collection<VirtualConsultation> findVirtualConsultations(){return consultations.findAll();}
+    public ConsentForm saveConsentForm(ConsentForm value){return consents.save(value);} public Collection<ConsentForm> findConsentForms(){return consents.findAll();}
 }

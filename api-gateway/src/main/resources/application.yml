@@ -1,8 +1,41 @@
 server:
   port: 4004
 
+jwt:
+  secret: ${JWT_SECRET}
+  issuer: ${JWT_ISSUER:patient-management-auth}
+  audience: ${JWT_AUDIENCE:patient-management-api}
 
-#http://localhost:4004/swagger-ui.html
+app:
+  security:
+    public-api-docs: ${PUBLIC_API_DOCS_ENABLED:false}
+    public-metrics: ${PUBLIC_METRICS_ENABLED:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:0.1}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:info}
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+
 springdoc:
   swagger-ui:
     urls:
@@ -10,6 +43,8 @@ springdoc:
         url: /auth-v3-api-docs
       - name: patient-service
         url: /patient-v3-api-docs
+      - name: billing-service
+        url: /billing-v3-api-docs
       - name: analytics-service
         url: /analytics-v3-api-docs
       - name: appointment-service
@@ -32,153 +67,144 @@ springdoc:
     enabled: true
 
 spring:
+  application:
+    name: api-gateway
   cloud:
     gateway:
       routes:
-
-          #Route for /auth/** to auth service
         - id: auth-service-route
-          uri: http://auth-service:4005
+          uri: ${AUTH_SERVICE_URI:http://auth-service:4005}
           predicates:
             - Path=/auth/**
           filters:
             - StripPrefix=1
 
-
-        # Route for /api/patients/** to patient service
         - id: patient-service-route
-          uri: http://patient-service:4000
+          uri: ${PATIENT_SERVICE_URI:http://patient-service:4000}
           predicates:
             - Path=/api/patients/**
           filters:
             - StripPrefix=1
-            - JwtValidation
 
         - id: analytics-service-route
-          uri: http://analytics-service:4002
+          uri: ${ANALYTICS_SERVICE_URI:http://analytics-service:4002}
           predicates:
             - Path=/api/analytics/**
           filters:
             - StripPrefix=1
-            - JwtValidation
 
         - id: appointment-service-route
-          uri: http://appointment-service:4010
+          uri: ${APPOINTMENT_SERVICE_URI:http://appointment-service:4010}
           predicates:
             - Path=/api/appointments/**
           filters:
             - StripPrefix=1
-            - JwtValidation
 
         - id: ehr-service-route
-          uri: http://ehr-service:4011
+          uri: ${EHR_SERVICE_URI:http://ehr-service:4011}
           predicates:
             - Path=/api/ehr/**
           filters:
             - StripPrefix=1
-            - JwtValidation
 
         - id: insurance-service-route
-          uri: http://insurance-service:4012
+          uri: ${INSURANCE_SERVICE_URI:http://insurance-service:4012}
           predicates:
             - Path=/api/insurance/**
           filters:
             - StripPrefix=1
-            - JwtValidation
 
         - id: notification-service-route
-          uri: http://notification-service:4013
+          uri: ${NOTIFICATION_SERVICE_URI:http://notification-service:4013}
           predicates:
             - Path=/api/notifications/**
           filters:
             - StripPrefix=1
-            - JwtValidation
 
         - id: inventory-pharmacy-service-route
-          uri: http://inventory-pharmacy-service:4014
+          uri: ${INVENTORY_PHARMACY_SERVICE_URI:http://inventory-pharmacy-service:4014}
           predicates:
             - Path=/api/inventory-pharmacy/**
           filters:
             - StripPrefix=1
-            - JwtValidation
 
         - id: audit-compliance-service-route
-          uri: http://audit-compliance-service:4015
+          uri: ${AUDIT_COMPLIANCE_SERVICE_URI:http://audit-compliance-service:4015}
           predicates:
             - Path=/api/audit/**
           filters:
             - StripPrefix=1
-            - JwtValidation
 
         - id: patient-portal-service-route
-          uri: http://patient-portal-service:4016
+          uri: ${PATIENT_PORTAL_SERVICE_URI:http://patient-portal-service:4016}
           predicates:
             - Path=/api/portal/**
           filters:
             - StripPrefix=1
-            - JwtValidation
 
         - id: staff-dashboard-service-route
-          uri: http://staff-dashboard-service:4017
+          uri: ${STAFF_DASHBOARD_SERVICE_URI:http://staff-dashboard-service:4017}
           predicates:
             - Path=/api/staff-dashboard/**
           filters:
             - StripPrefix=1
-            - JwtValidation
 
-        #Route for Patient service docs
-        - id: patient-v3-api-docs-route
-          uri: http://patient-service:4000
-          predicates:
-            - Path=/patient-v3-api-docs/**
-
-        #Route for Auth service docs
         - id: auth-v3-api-docs-route
-          uri: http://auth-service:4005
+          uri: ${AUTH_SERVICE_URI:http://auth-service:4005}
           predicates:
             - Path=/auth-v3-api-docs/**
 
+        - id: patient-v3-api-docs-route
+          uri: ${PATIENT_SERVICE_URI:http://patient-service:4000}
+          predicates:
+            - Path=/patient-v3-api-docs/**
+
+        - id: billing-v3-api-docs-route
+          uri: ${BILLING_SERVICE_URI:http://billing-service:4001}
+          predicates:
+            - Path=/billing-v3-api-docs/**
+
         - id: analytics-v3-api-docs-route
-          uri: http://analytics-service:4002
+          uri: ${ANALYTICS_SERVICE_URI:http://analytics-service:4002}
           predicates:
             - Path=/analytics-v3-api-docs/**
 
         - id: appointment-v3-api-docs-route
-          uri: http://appointment-service:4010
+          uri: ${APPOINTMENT_SERVICE_URI:http://appointment-service:4010}
           predicates:
             - Path=/appointment-v3-api-docs/**
 
         - id: ehr-v3-api-docs-route
-          uri: http://ehr-service:4011
+          uri: ${EHR_SERVICE_URI:http://ehr-service:4011}
           predicates:
             - Path=/ehr-v3-api-docs/**
 
         - id: insurance-v3-api-docs-route
-          uri: http://insurance-service:4012
+          uri: ${INSURANCE_SERVICE_URI:http://insurance-service:4012}
           predicates:
             - Path=/insurance-v3-api-docs/**
 
         - id: notification-v3-api-docs-route
-          uri: http://notification-service:4013
+          uri: ${NOTIFICATION_SERVICE_URI:http://notification-service:4013}
           predicates:
             - Path=/notification-v3-api-docs/**
 
         - id: inventory-pharmacy-v3-api-docs-route
-          uri: http://inventory-pharmacy-service:4014
+          uri: ${INVENTORY_PHARMACY_SERVICE_URI:http://inventory-pharmacy-service:4014}
           predicates:
             - Path=/inventory-pharmacy-v3-api-docs/**
 
         - id: audit-compliance-v3-api-docs-route
-          uri: http://audit-compliance-service:4015
+          uri: ${AUDIT_COMPLIANCE_SERVICE_URI:http://audit-compliance-service:4015}
           predicates:
             - Path=/audit-compliance-v3-api-docs/**
 
         - id: patient-portal-v3-api-docs-route
-          uri: http://patient-portal-service:4016
+          uri: ${PATIENT_PORTAL_SERVICE_URI:http://patient-portal-service:4016}
           predicates:
             - Path=/patient-portal-v3-api-docs/**
 
         - id: staff-dashboard-v3-api-docs-route
-          uri: http://staff-dashboard-service:4017
+          uri: ${STAFF_DASHBOARD_SERVICE_URI:http://staff-dashboard-service:4017}
           predicates:
             - Path=/staff-dashboard-v3-api-docs/**

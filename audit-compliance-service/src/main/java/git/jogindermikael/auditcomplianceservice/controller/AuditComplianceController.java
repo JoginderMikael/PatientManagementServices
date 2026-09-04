@@ -6,6 +6,7 @@ import git.jogindermikael.auditcomplianceservice.service.AuditComplianceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@PreAuthorize("hasAnyRole('ADMIN','AUDITOR')")
 @RequestMapping("/audit")
 @Tag(name = "Audit & Compliance", description = "HIPAA-oriented audit trail for patient data access and mutations")
 public class AuditComplianceController {
@@ -31,7 +33,8 @@ public class AuditComplianceController {
 
     @GetMapping("/events")
     @Operation(summary = "Search audit events")
-    public List<AuditEvent> searchEvents(@RequestParam(required = false) UUID patientId, @RequestParam(required = false) UUID actorId) {
+    public List<AuditEvent> searchEvents(@RequestParam(required = false) UUID patientId,
+            @RequestParam(required = false) UUID actorId) {
         return auditComplianceService.searchEvents(patientId, actorId);
     }
 

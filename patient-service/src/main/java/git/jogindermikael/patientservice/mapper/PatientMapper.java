@@ -15,6 +15,14 @@ public class PatientMapper {
         patientResponseDTO.setAddress(patient.getAddress());
         patientResponseDTO.setEmail(patient.getEmail());
         patientResponseDTO.setDateOfBirth(patient.getDateOfBirth().toString());
+        patientResponseDTO.setMrn(patient.getMrn());
+        patientResponseDTO.setPhone(patient.getPhone());
+        patientResponseDTO.setGender(patient.getGender());
+        patientResponseDTO.setPreferredLanguage(patient.getPreferredLanguage());
+        patientResponseDTO.setStatus(patient.getStatus().name());
+        patientResponseDTO.setMergedIntoPatientId(patient.getMergedIntoPatientId() == null ? null : patient.getMergedIntoPatientId().toString());
+        patientResponseDTO.setExternalIdentifiers(patient.getExternalIdentifiers());
+        patientResponseDTO.setVersion(patient.getVersion());
 
         return patientResponseDTO;
     }
@@ -26,6 +34,10 @@ public class PatientMapper {
         patient.setEmail(patientRequestDTO.getEmail());
         patient.setDateOfBirth(LocalDate.parse(patientRequestDTO.getDateOfBirth()));
         patient.setRegisteredDate(LocalDate.parse(patientRequestDTO.getRegisteredDate()));
+        patient.setPhone(patientRequestDTO.getPhone());
+        patient.setGender(patientRequestDTO.getGender());
+        patient.setPreferredLanguage(patientRequestDTO.getPreferredLanguage());
+        patient.setExternalIdentifiers(patientRequestDTO.getExternalIdentifiers());
         return patient;
     }
 }

@@ -3,13 +3,14 @@ package git.jogindermikael.patientservice.controller;
 import git.jogindermikael.patientservice.dto.PatientRequestDTO;
 import git.jogindermikael.patientservice.dto.PatientResponseDTO;
 import git.jogindermikael.patientservice.dto.validators.CreatePatientValidationGroup;
-import git.jogindermikael.patientservice.model.Patient;
+import git.jogindermikael.patientservice.model.PatientStatus;
 import git.jogindermikael.patientservice.service.PatientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.groups.Default;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@PreAuthorize("hasAnyRole('ADMIN','CLINICIAN','REGISTRATION_STAFF')")
 @RequestMapping("/patients")
 @Tag(name = "Patient", description = "API for Managing Patients")
 public class PatientController {
@@ -35,10 +37,45 @@ public class PatientController {
         return ResponseEntity.ok().body(patientService.getPatients());
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Get a patient by MPI identifier")
+    public PatientResponseDTO getPatient(@PathVariable UUID id) {
+        return patientService.getPatient(id);
+    }
+
     @PostMapping
     @Operation(summary = "Create a new patient")
-    public ResponseEntity<PatientResponseDTO> createPatient(@Validated({Default.class, CreatePatientValidationGroup.class}) @RequestBody PatientRequestDTO patientRequestDTO) {
-        return ResponseEntity.ok().body(patientService.createPatient(patientRequestDTO));
+    public ResponseEntity<PatientResponseDTO> createPatient(
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @Validated({Default.class, CreatePatientValidationGroup.class}) @RequestBody PatientRequestDTO patientRequestDTO) {
+        return ResponseEntity.ok().body(patientService.createPatient(patientRequestDTO, idempotencyKey));
+    }
+
+    @GetMapping("/duplicates")
+    @Operation(summary = "Find MPI duplicate candidates")
+    public List<PatientResponseDTO> findDuplicates(@RequestParam(required = false) String name,
+                                                   @RequestParam(required = false) java.time.LocalDate dateOfBirth,
+                                                   @RequestParam(required = false) String phone,
+                                                   @RequestParam(required = false) String email) {
+        return patientService.findDuplicates(name, dateOfBirth, phone, email);
+    }
+
+    @PostMapping("/{id}/status/{status}")
+    @Operation(summary = "Change patient lifecycle status")
+    public PatientResponseDTO changeStatus(@PathVariable UUID id, @PathVariable PatientStatus status) {
+        return patientService.changeStatus(id, status);
+    }
+
+    @PostMapping("/{sourceId}/merge/{targetId}")
+    @Operation(summary = "Merge a duplicate MPI record into its survivor")
+    public PatientResponseDTO merge(@PathVariable UUID sourceId, @PathVariable UUID targetId) {
+        return patientService.merge(sourceId, targetId);
+    }
+
+    @PostMapping("/{sourceId}/unmerge")
+    @Operation(summary = "Reverse the latest active MPI merge")
+    public PatientResponseDTO unmerge(@PathVariable UUID sourceId) {
+        return patientService.unmerge(sourceId);
     }
 
 

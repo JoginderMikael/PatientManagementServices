@@ -5,8 +5,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-
-
+import java.util.Map;
 
 public class PatientRequestDTO {
     @NotBlank(message = "Name is required")
@@ -25,6 +24,13 @@ public class PatientRequestDTO {
 
     @NotBlank(groups = CreatePatientValidationGroup.class, message = "Registered date is required")
     private String registeredDate;
+    @Size(max = 40)
+    private String phone;
+    @Size(max = 40)
+    private String gender;
+    @Size(max = 20)
+    private String preferredLanguage;
+    private Map<String, String> externalIdentifiers;
 
 
     public String getName() {
@@ -66,4 +72,12 @@ public class PatientRequestDTO {
     public void setRegisteredDate(String registeredDate) {
         this.registeredDate = registeredDate;
     }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
+    public String getPreferredLanguage() { return preferredLanguage; }
+    public void setPreferredLanguage(String preferredLanguage) { this.preferredLanguage = preferredLanguage; }
+    public Map<String, String> getExternalIdentifiers() { return externalIdentifiers; }
+    public void setExternalIdentifiers(Map<String, String> externalIdentifiers) { this.externalIdentifiers = externalIdentifiers; }
 }

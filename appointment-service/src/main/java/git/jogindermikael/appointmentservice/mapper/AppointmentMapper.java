@@ -5,21 +5,27 @@ import git.jogindermikael.appointmentservice.model.AppointmentModels.*;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Component
 public class AppointmentMapper {
     public DoctorSchedule toSchedule(DoctorScheduleRequest request) {
         UUID id = request.id() == null ? UUID.randomUUID() : request.id();
-        return new DoctorSchedule(id, request.doctorId(), request.workDate(), request.startsAt(), request.endsAt(), request.location());
+        LocalTime startsAt = LocalTime.parse(request.startsAt());
+        LocalTime endsAt = LocalTime.parse(request.endsAt());
+        if (!endsAt.isAfter(startsAt)) throw new IllegalArgumentException("Schedule end must be after start");
+        return new DoctorSchedule(id, request.doctorId(), request.workDate(), startsAt, endsAt, request.location());
     }
 
     public Appointment toAppointment(AppointmentRequest request) {
-        return new Appointment(UUID.randomUUID(), request.patientId(), request.doctorId(), request.startsAt(), request.reason(), "BOOKED", Instant.now());
+        int duration = request.durationMinutes() == null ? 30 : request.durationMinutes();
+        return new Appointment(UUID.randomUUID(), request.patientId(), request.doctorId(), request.startsAt(), request.startsAt().plusMinutes(duration), request.reason(), "BOOKED", Instant.now());
     }
 
     public Appointment toCancelledAppointment(Appointment appointment, CancellationRequest request) {
-        return new Appointment(appointment.id(), appointment.patientId(), appointment.doctorId(), appointment.startsAt(), request.reason(), "CANCELLED", Instant.now());
+        appointment.cancel(request.reason());
+        return appointment;
     }
 
     public WaitlistEntry toWaitlistEntry(WaitlistRequest request) {

@@ -1,16 +1,17 @@
-package git.joginderMikael.stack;
+package git.jogindermikael.stack;
+
 import software.amazon.awscdk.*;
 import software.amazon.awscdk.services.ec2.*;
 import software.amazon.awscdk.services.ec2.InstanceType;
 import software.amazon.awscdk.services.ecs.*;
 import software.amazon.awscdk.services.ecs.Protocol;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
-import software.amazon.awscdk.services.elasticloadbalancingv2.ApplicationLoadBalancer;
 import software.amazon.awscdk.services.logs.LogGroup;
 import software.amazon.awscdk.services.logs.RetentionDays;
 import software.amazon.awscdk.services.msk.CfnCluster;
 import software.amazon.awscdk.services.rds.*;
 import software.amazon.awscdk.services.route53.CfnHealthCheck;
+import software.amazon.awscdk.services.secretsmanager.Secret;
 
 import java.util.HashMap;
 import java.util.List;
@@ -53,47 +54,58 @@ public class LocalStack extends Stack {
         }
 
         this.ecsCluster = createEcsCluster();
+        Secret jwtSecret = Secret.Builder.create(this, "JwtSigningSecret")
+                .secretName("/patient-management/shared/jwt-signing-secret")
+                .description("Shared HMAC signing key for local JWT resource-server validation. Replace with OIDC/JWKS in production.")
+                .generateSecretString(software.amazon.awscdk.services.secretsmanager.SecretStringGenerator.builder()
+                        .excludePunctuation(true)
+                        .passwordLength(64)
+                        .build())
+                .build();
+        Map<String, software.amazon.awscdk.services.ecs.Secret> jwtSecretEnv =
+                Map.of("JWT_SECRET", software.amazon.awscdk.services.ecs.Secret.fromSecretsManager(jwtSecret));
 
         FargateService authService = createFargateService("AuthService", "auth-service",
                 List.of(4005),
                 authServiceDb,
-                Map.of("JWT_SECRET", "4a6b2c8e9f1a3d5c7b0e2f4a6c8e0d1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d"));
+                Map.of(),
+                jwtSecretEnv);
         if (authDbHealthCheck != null) authService.getNode().addDependency(authDbHealthCheck);
         if (authServiceDb != null) authService.getNode().addDependency(authServiceDb);
 
         FargateService billingService = createFargateService("BillingService", "billing-service",
                 List.of(4001, 9001),
-                null, null);
+                null, null, jwtSecretEnv);
 
         FargateService analyticsService = createFargateService("AnalyticsService", "analytics-service",
-                List.of(4002), null, null);
+                List.of(4002), null, null, jwtSecretEnv);
         if (mskCluster != null) analyticsService.getNode().addDependency(mskCluster);
 
         FargateService appointmentService = createFargateService("AppointmentService", "appointment-service",
-                List.of(4010), null, null);
+                List.of(4010), null, null, jwtSecretEnv);
 
         FargateService ehrService = createFargateService("EhrService", "ehr-service",
-                List.of(4011), null, null);
+                List.of(4011), null, null, jwtSecretEnv);
 
         FargateService insuranceService = createFargateService("InsuranceService", "insurance-service",
-                List.of(4012), null, null);
+                List.of(4012), null, null, jwtSecretEnv);
 
         FargateService notificationService = createFargateService("NotificationService", "notification-service",
-                List.of(4013), null, null);
+                List.of(4013), null, null, jwtSecretEnv);
         if (mskCluster != null) notificationService.getNode().addDependency(mskCluster);
 
         FargateService inventoryPharmacyService = createFargateService("InventoryPharmacyService", "inventory-pharmacy-service",
-                List.of(4014), null, null);
+                List.of(4014), null, null, jwtSecretEnv);
 
         FargateService auditComplianceService = createFargateService("AuditComplianceService", "audit-compliance-service",
-                List.of(4015), null, null);
+                List.of(4015), null, null, jwtSecretEnv);
         if (mskCluster != null) auditComplianceService.getNode().addDependency(mskCluster);
 
         FargateService patientPortalService = createFargateService("PatientPortalService", "patient-portal-service",
-                List.of(4016), null, null);
+                List.of(4016), null, null, jwtSecretEnv);
 
         FargateService staffDashboardService = createFargateService("StaffDashboardService", "staff-dashboard-service",
-                List.of(4017), null, null);
+                List.of(4017), null, null, jwtSecretEnv);
 
         FargateService patientService = createFargateService("PatientService", "patient-service",
                 List.of(4000),
@@ -101,7 +113,8 @@ public class LocalStack extends Stack {
                 Map.of(
                         "BILLING_SERVICE_ADDRESS","host.docker.internal",
                         "BILLING_SERVICE_GRPC_PORT", "9001"
-                ));
+                ),
+                jwtSecretEnv);
         if (patientServiceDb != null) patientService.getNode().addDependency(patientServiceDb);
         if (patientDbHealthCheck != null) patientService.getNode().addDependency(patientDbHealthCheck);
         patientService.getNode().addDependency(billingService);
@@ -116,7 +129,7 @@ public class LocalStack extends Stack {
         patientPortalService.getNode().addDependency(appointmentService);
         staffDashboardService.getNode().addDependency(ehrService);
 
-        createApiGatewayService();
+        createApiGatewayService(jwtSecretEnv);
 
     }
 
@@ -188,7 +201,8 @@ public class LocalStack extends Stack {
                                                 String imageName,
                                                 List<Integer> ports,
                                                 DatabaseInstance db,
-                                                Map<String, String> additionalEnvVars) {
+                                                Map<String, String> additionalEnvVars,
+                                                Map<String, software.amazon.awscdk.services.ecs.Secret> additionalSecrets) {
         FargateTaskDefinition taskDefinition = FargateTaskDefinition.Builder
                 .create(this, id + "Task")
                 .cpu(256)
@@ -220,6 +234,10 @@ public class LocalStack extends Stack {
         if (additionalEnvVars != null) {
             enVars.putAll(additionalEnvVars);
         }
+        Map<String, software.amazon.awscdk.services.ecs.Secret> secretVars = new HashMap<>();
+        if (additionalSecrets != null) {
+            secretVars.putAll(additionalSecrets);
+        }
 
         if(db != null) {
             enVars.put("SPRING_DATASOURCE_URL", "jdbc:postgresql://%s:%s/%s-db".formatted(
@@ -228,13 +246,18 @@ public class LocalStack extends Stack {
                     imageName
             ));
             enVars.put("SPRING_DATASOURCE_USERNAME", "admin_user");
-            enVars.put("SPRING_DATASOURCE_PASSWORD", Objects.requireNonNull(db.getSecret()).secretValueFromJson("password").toString());
-            enVars.put("SPRING_JPA_HIBERNATE_DDL_AUTO", "update");
-            enVars.put("SPRING_SQL_INIT_MODE", "always");
+            secretVars.put("SPRING_DATASOURCE_PASSWORD",
+                    software.amazon.awscdk.services.ecs.Secret.fromSecretsManager(Objects.requireNonNull(db.getSecret()), "password"));
+            enVars.put("SPRING_JPA_HIBERNATE_DDL_AUTO", "validate");
+            enVars.put("SPRING_SQL_INIT_MODE", "never");
+            enVars.put("SPRING_FLYWAY_ENABLED", "true");
             enVars.put("SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT", "60000");
         }
 
         containerOptions.environment(enVars);
+        if (!secretVars.isEmpty()) {
+            containerOptions.secrets(secretVars);
+        }
         taskDefinition.addContainer(imageName + "container", containerOptions.build());
 
         return FargateService.Builder.create(this, id)
@@ -245,7 +268,7 @@ public class LocalStack extends Stack {
                 .build();
     }
 
-    private void createApiGatewayService(){
+    private void createApiGatewayService(Map<String, software.amazon.awscdk.services.ecs.Secret> secrets){
 
         FargateTaskDefinition taskDefinition = FargateTaskDefinition.Builder
                 .create(this, "APIGatewayTaskDefinitionv")
@@ -263,6 +286,7 @@ public class LocalStack extends Stack {
                                         "AUTH_SERVICE_URL", "http://host.docker.internal:4005"
                                 )
                         )
+                        .secrets(secrets)
                         .portMappings(List.of(4004).stream()
                                 .map(port -> PortMapping.builder()
                                         .containerPort(port)

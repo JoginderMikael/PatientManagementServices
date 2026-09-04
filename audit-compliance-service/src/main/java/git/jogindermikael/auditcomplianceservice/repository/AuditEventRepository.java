@@ -1,22 +1,19 @@
 package git.jogindermikael.auditcomplianceservice.repository;
 
 import git.jogindermikael.auditcomplianceservice.model.AuditEvent;
-import org.springframework.stereotype.Repository;
-
-import java.util.Collection;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
-@Repository
-public class AuditEventRepository {
-    private final ConcurrentHashMap<UUID, AuditEvent> events = new ConcurrentHashMap<>();
+public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> {
+    Optional<AuditEvent> findBySourceEventId(UUID sourceEventId);
 
-    public AuditEvent save(AuditEvent event) {
-        events.put(event.id(), event);
-        return event;
-    }
+    Optional<AuditEvent> findTopByOrderByOccurredAtDesc();
 
-    public Collection<AuditEvent> findAll() {
-        return events.values();
-    }
+    List<AuditEvent> findByPatientIdOrderByOccurredAt(UUID patientId);
+
+    List<AuditEvent> findByActorIdOrderByOccurredAt(String actorId);
+
+    List<AuditEvent> findByPatientIdAndActorIdOrderByOccurredAt(UUID patientId, String actorId);
 }

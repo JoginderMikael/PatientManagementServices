@@ -1,22 +1,18 @@
 package git.jogindermikael.notificationservice.repository;
 
 import git.jogindermikael.notificationservice.model.NotificationMessage;
-import org.springframework.stereotype.Repository;
-
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
-@Repository
-public class NotificationRepository {
-    private final ConcurrentHashMap<UUID, NotificationMessage> messages = new ConcurrentHashMap<>();
+public interface NotificationRepository extends JpaRepository<NotificationMessage, UUID> {
+    List<NotificationMessage> findByRecipientIdOrderByCreatedAt(UUID recipientId);
 
-    public NotificationMessage save(NotificationMessage message) {
-        messages.put(message.id(), message);
-        return message;
-    }
+    List<NotificationMessage> findTop50ByStatusInAndNextAttemptAtLessThanEqualOrderByCreatedAt(
+            Collection<String> statuses, Instant now);
 
-    public Collection<NotificationMessage> findAll() {
-        return messages.values();
-    }
+    Optional<NotificationMessage> findByCorrelationIdAndTemplate(UUID correlationId, String template);
 }

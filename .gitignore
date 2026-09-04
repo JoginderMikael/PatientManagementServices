@@ -1,6 +1,25 @@
+# Local environment files
 .env
 .env.*
 !.env.example
 
-ENTERPRISE_IMPROVEMENTS.md
-ENTERPRISE_PATIENT_MANAGEMENT_COMPLETION_PLAN.txt
+# Maven build output
+target/
+*/target/
+
+# IDE and local machine metadata
+.idea/
+*.iml
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Infrastructure generated output
+infrastructure/cdk.out/

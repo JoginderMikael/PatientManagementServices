@@ -20,15 +20,37 @@ public class NotificationService {
         this.mapper = mapper;
     }
 
-    public NotificationMessage send(NotificationRequest request) { return repository.save(mapper.fromNotificationRequest(request)); }
-    public NotificationMessage sendAppointmentReminder(AppointmentReminderRequest request) { return repository.save(mapper.fromAppointmentReminder(request)); }
-    public NotificationMessage sendBillAlert(BillAlertRequest request) { return repository.save(mapper.fromBillAlert(request)); }
-    public NotificationMessage sendMfaCode(MfaCodeRequest request) { return repository.save(mapper.fromMfaCode(request)); }
+    public NotificationMessage send(NotificationRequest request) {
+        validateChannel(request.channel());
+        return repository.save(mapper.fromNotificationRequest(request));
+    }
+
+    public NotificationMessage sendAppointmentReminder(AppointmentReminderRequest request) {
+        validateChannel(request.channel());
+        return repository.save(mapper.fromAppointmentReminder(request));
+    }
+
+    public NotificationMessage sendBillAlert(BillAlertRequest request) {
+        validateChannel(request.channel());
+        return repository.save(mapper.fromBillAlert(request));
+    }
+
+    public NotificationMessage sendMfaCode(MfaCodeRequest request) {
+        validateChannel(request.channel());
+        return repository.save(mapper.fromMfaCode(request));
+    }
 
     public List<NotificationMessage> list(UUID recipientId) {
-        return repository.findAll().stream()
-                .filter(message -> recipientId == null || message.recipientId().equals(recipientId))
+        return (recipientId == null ? repository.findAll() : repository.findByRecipientIdOrderByCreatedAt(recipientId))
+                .stream()
                 .sorted(Comparator.comparing(NotificationMessage::createdAt))
                 .toList();
+    }
+
+    private void validateChannel(String channel) {
+        if (!java.util.Set.of("EMAIL", "SMS", "PUSH").contains(channel.toUpperCase())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Unsupported notification channel");
+        }
     }
 }

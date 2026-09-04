@@ -1,12 +1,14 @@
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class AuthIntegrationTest {
+@EnabledIfSystemProperty(named = "runLiveIntegrationTests", matches = "true")
+class AuthIntegrationTest {
     @BeforeAll
     static void setUp() {
         RestAssured.baseURI = "http://localhost:4004";
@@ -75,7 +77,7 @@ public class AuthIntegrationTest {
                 .when()
                 .get("auth/validate")
                 .then()
-                .statusCode(400);
+                .statusCode(401);
 
         given()
                 .header("Authorization", "Bearer not-a-real-token")

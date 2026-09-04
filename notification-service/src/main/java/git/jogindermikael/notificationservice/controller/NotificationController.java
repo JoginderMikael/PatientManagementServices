@@ -6,6 +6,7 @@ import git.jogindermikael.notificationservice.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@PreAuthorize("hasAnyRole('ADMIN','CLINICIAN','REGISTRATION_STAFF','BILLING_STAFF')")
 @RequestMapping("/notifications")
 @Tag(name = "Notifications", description = "Email, SMS and push notification hub for reminders, bill alerts and MFA codes")
 public class NotificationController {
@@ -31,7 +33,8 @@ public class NotificationController {
 
     @PostMapping("/appointment-reminders")
     @Operation(summary = "Send an appointment reminder")
-    public ResponseEntity<NotificationMessage> sendAppointmentReminder(@Valid @RequestBody AppointmentReminderRequest request) {
+    public ResponseEntity<NotificationMessage> sendAppointmentReminder(
+            @Valid @RequestBody AppointmentReminderRequest request) {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(notificationService.sendAppointmentReminder(request));
     }
 

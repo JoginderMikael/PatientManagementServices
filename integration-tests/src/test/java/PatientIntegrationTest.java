@@ -1,6 +1,7 @@
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.util.UUID;
 
@@ -8,7 +9,8 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 
-public class PatientIntegrationTest {
+@EnabledIfSystemProperty(named = "runLiveIntegrationTests", matches = "true")
+class PatientIntegrationTest {
 
     @BeforeAll
     static void setUp() {

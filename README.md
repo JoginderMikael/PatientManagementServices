@@ -10,7 +10,7 @@ The project consists of the following microservices:
 - **Role**: Entry point for all external requests.
 - **Responsibilities**:
     - Routing requests to appropriate microservices.
-    - Centralized JWT validation using a custom gateway filter.
+    - JWT validation through Spring Security's OAuth2 resource-server support.
     - Load balancing and edge security.
 
 ### 2. Auth Service
@@ -23,15 +23,15 @@ The project consists of the following microservices:
 ### 3. Patient Service
 - **Role**: Core business logic for patient management.
 - **Responsibilities**:
-    - CRUD operations for patient records.
-    - Synchronous communication with the **Billing Service** via **gRPC** for billing status checks.
-    - Asynchronous event publishing to **Kafka** for patient-related activities.
+    - MPI-oriented registration, duplicate detection, lifecycle state, and merge/unmerge workflows.
+    - Durable asynchronous billing-account provisioning through a transactional outbox.
+    - Minimal-PHI, versioned patient event publishing to **Kafka**.
 
 ### 4. Billing Service
 - **Role**: Financial management related to patients.
 - **Responsibilities**:
-    - Processing and managing patient billing information.
-    - Providing high-performance **gRPC** endpoints for real-time inter-service queries.
+    - Persisting one idempotently created billing account per patient.
+    - Providing secured REST and **gRPC** account endpoints and consuming patient registration events.
 
 ### 5. Analytics Service
 - **Role**: Data processing and reporting.
@@ -44,12 +44,13 @@ The project consists of the following microservices:
 - **Role**: Scheduling and telemedicine coordination.
 - **Responsibilities**:
     - Managing doctor schedules, patient bookings, cancellations, and waitlists.
+    - Enforcing overlapping-booking conflicts with database-backed slot reservations.
     - Creating virtual consultation rooms and capturing digital consent forms.
 
 ### 7. Electronic Health Records (EHR) Service
 - **Role**: Clinical record management.
 - **Responsibilities**:
-    - Storing medical histories, diagnoses, prescriptions, lab results, and vaccination records.
+    - Persisting encounters, medical histories, diagnoses, prescriptions, lab results, signed notes, and vaccination records.
     - Importing external laboratory results from LIS-style payloads.
 
 ### 8. Insurance & Claims Service
@@ -61,7 +62,8 @@ The project consists of the following microservices:
 ### 9. Notification Service
 - **Role**: Centralized patient and staff communication hub.
 - **Responsibilities**:
-    - Queuing email, SMS, and push notifications.
+    - Persisting and dispatching email, SMS, and push notifications through a configurable provider.
+    - Retrying failed deliveries with backoff and dead-letter status.
     - Supporting appointment reminders, billing alerts, and MFA code delivery.
 
 ### 10. Inventory & Pharmacy Service
@@ -73,7 +75,8 @@ The project consists of the following microservices:
 ### 11. Audit & Compliance Service
 - **Role**: Compliance-grade access logging.
 - **Responsibilities**:
-    - Capturing who accessed or changed patient records, when, and why.
+    - Automatically capturing who accessed or changed Phase 2 core records, when, and why.
+    - Persisting idempotent, hash-chained audit records from versioned events.
     - Searching patient-specific audit trails for HIPAA-oriented review.
 
 ### 12. Patient Portal Service
@@ -99,6 +102,31 @@ The project consists of the following microservices:
 - **Messaging**: Apache Kafka
 - **Security**: Spring Security, JWT
 - **Infrastructure**: AWS CDK, Maven
+
+## Local Development
+
+Requirements: Java 21 or newer, Maven 3.9 or newer, Docker, and Docker Compose.
+
+1. Copy `.env.example` to `.env`.
+2. Replace every placeholder. Generate `JWT_SECRET` with `openssl rand -base64 32` or an equivalent cryptographically secure generator.
+3. Validate the resolved configuration with `docker compose config --quiet`.
+4. Start the environment with `docker compose up --build`.
+
+The local stack exposes the gateway on port `4004`, Prometheus on `9090`, and Grafana on `3000`. PostgreSQL is exposed for local tooling on ports `5000` (patient), `5001` (auth), `5002` (billing), `5003` (appointment), `5004` (EHR), `5005` (notification), and `5006` (audit). API documentation and Prometheus endpoints are public only because the Compose defaults explicitly enable them; non-local defaults require an authenticated `ADMIN` token.
+
+Run the complete build with:
+
+```shell
+mvn clean verify
+```
+
+Live end-to-end tests remain opt-in and expect the Compose environment to be running:
+
+```shell
+mvn -pl integration-tests -DrunLiveIntegrationTests=true test
+```
+
+Production security, secret, TLS/mTLS, and observability decisions are documented in [`docs/production-foundation.md`](docs/production-foundation.md). Versioned event envelopes, topics, PHI constraints, and compatibility rules are documented in [`docs/event-schemas.md`](docs/event-schemas.md).
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

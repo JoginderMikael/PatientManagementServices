@@ -1,0 +1,880 @@
+ENTERPRISE PATIENT MANAGEMENT SYSTEM COMPLETION ASSESSMENT AND ROADMAP
+Generated: 2026-08-27
+Updated: 2026-09-04 - Phase 2 durable core workflows completed
+Repository: C:\S_Projects\PatientManagementServices
+
+Scope and assumptions
+---------------------
+This assessment is based on a repository scan of source code, service configuration,
+infrastructure code, tests, README.md, and the existing ENTERPRISE_IMPROVEMENTS.md.
+It was not produced from a running production environment or a live threat model.
+
+The current codebase is best treated as an early-to-mid product implementation. It
+has a useful microservice outline, a secured API gateway, durable patient, billing,
+appointment, EHR, notification, and audit workflows, versioned Kafka integration,
+OpenAPI dependencies, Dockerfiles, and remaining prototype domains for insurance,
+inventory/pharmacy, patient portal, staff dashboard, and analytics.
+
+It is not yet enterprise-grade for real patient data. The largest gaps are durable
+persistence, authorization depth, compliance controls, clinical data modeling,
+interoperability, operational readiness, reliable messaging, testing depth, and
+real business workflows.
+
+Regulatory scope must be confirmed by the product owner and legal/compliance team.
+The project already mentions HIPAA, so this report uses HIPAA and US interoperability
+references as anchors. If the product is deployed outside the US, add the relevant
+local healthcare, privacy, data residency, and breach notification requirements.
+This document is engineering guidance, not legal advice.
+
+
+Implementation update - 2026-09-04
+----------------------------------
+
+Status:
+
+- Phase 0: COMPLETE.
+- Phase 1: COMPLETE for the production-foundation scope defined in this plan.
+- Phase 2: COMPLETE for the durable-core-workflow scope defined in this plan.
+- Phases 3 through 5: NOT STARTED unless pre-existing prototype behavior is
+  explicitly noted elsewhere in the baseline assessment.
+
+Phase 0 completion evidence:
+
+- A 16-module root Maven reactor now centralizes Java 21, Spring Boot, Spring Cloud,
+  dependency versions, protobuf generation, build-tool enforcement, and test setup.
+- All child modules inherit from the root parent and use lowercase Java package names.
+- The root .gitignore excludes Maven target output, CDK output, IDE metadata, local
+  environment files, logs, and temporary files. Previously tracked generated/IDE
+  artifacts have been removed from the index/worktree cleanup set.
+- docker-compose.yml starts all application services plus PostgreSQL for auth and
+  patient, Kafka, Prometheus, and Grafana. Service addresses and credentials use
+  environment variables; docker compose config validation is part of CI.
+- .env.example is placeholder-only. Runtime services no longer contain a fallback
+  JWT signing key, and Compose refuses to resolve without an explicit local key.
+- The GitHub Actions CI workflow validates repository hygiene and Compose syntax,
+  then runs the complete Maven clean verify reactor build.
+- README.md documents the local setup, build, observability endpoints, and opt-in
+  live integration-test command.
+
+Phase 1 completion evidence:
+
+- The gateway and every HTTP service use Spring Security OAuth2 resource-server
+  validation. Protected gateway routes no longer call auth-service /validate on
+  every request, and the bearer token continues downstream for independent service
+  validation.
+- Coarse controller authorization policies are enforced with role checks. Tests
+  cover missing-token, disallowed-role, and allowed-admin patient API access.
+- Local IAM tokens are short-lived and include stable subject/user id, issuer,
+  audience, token id, issued/expiry timestamps, email, roles, and scopes. Resource
+  servers validate signature, expiry, issuer, and audience. The documented production
+  direction migrates signing to an OAuth2/OIDC provider with JWKS.
+- OpenAPI and Prometheus endpoints require ADMIN by default. Local Compose opts into
+  public development access explicitly; the production gateway profile disables API
+  docs unless explicitly enabled.
+- AWS CDK models the JWT signing key in Secrets Manager and injects it as an ECS
+  secret; RDS credentials use generated database secrets. No signing key is hard-coded
+  in application or production profile configuration.
+- The TLS/mTLS rollout, certificate identity/rotation rules, validation criteria,
+  and rollback expectations are recorded in docs/production-foundation.md.
+- Every service has Actuator health/readiness/liveness, Prometheus metrics,
+  Micrometer/OpenTelemetry tracing support, application/trace/span log correlation,
+  and local Prometheus/Grafana dashboards and alert rules.
+- Auth and patient schemas use Flyway with Hibernate validate mode. Production schema
+  migrations are separated from local synthetic seed migrations.
+- Testcontainers PostgreSQL tests apply the production auth and patient migrations
+  and verify that development rows are not installed. Existing live gateway tests
+  remain explicitly opt-in.
+
+Phase 2 completion evidence:
+
+- patient-service now provides a durable MPI-oriented registration lifecycle with
+  generated MRNs, external identifiers, contact/demographic fields, lifecycle status,
+  duplicate candidate search, merge/unmerge history, optimistic versioning, archival,
+  and idempotent registration commands.
+- Registration no longer depends on a synchronous billing call. Patient state and a
+  versioned integration event are committed atomically to an outbox, then published
+  asynchronously with retry semantics and at-least-once delivery.
+- billing-service persists one account per patient and treats REST, gRPC, and patient
+  event commands idempotently using database uniqueness and transactional handling.
+- appointment-service persists schedules, appointments, waitlists, telehealth sessions,
+  and consent forms. Minute-granularity slot reservations have a database uniqueness
+  constraint, so overlapping bookings are rejected safely across service instances.
+- ehr-service persists encounters, medical history, diagnoses, prescriptions, lab
+  results, clinical notes, and vaccinations. Diagnoses, prescriptions, labs, and notes
+  can be linked to an encounter; encounters can be closed and notes can be signed and
+  locked with optimistic versioning.
+- notification-service persists a delivery queue, consumes versioned notification
+  requests, invokes a configurable webhook provider, records provider status, retries
+  failures with backoff, and dead-letters deliveries after the configured attempt limit.
+- Patient, billing, appointment, EHR, and notification HTTP requests automatically emit
+  PHI-minimized audit envelopes. audit-compliance-service consumes those and domain
+  events into durable, searchable, idempotent, hash-chained audit storage.
+- The version 1 JSON event envelope, PHI constraints, topic ownership, consumer
+  idempotency, and breaking/non-breaking compatibility rules are documented in
+  docs/event-schemas.md. Analytics consumes the new patient.events.v1 contract without
+  receiving names, email addresses, or other direct contact data.
+- Docker Compose now provisions isolated PostgreSQL databases for billing, appointment,
+  EHR, notification, and audit in addition to auth and patient.
+
+Verification completed 2026-09-04:
+
+- mvn -B verify completed successfully for all 16 reactor projects.
+- Surefire reports contain 39 tests: 30 passed, 0 failed, 0 errored, and 9 skipped.
+  The skipped tests are the intentionally opt-in live gateway tests.
+- Seven Testcontainers PostgreSQL migration tests ran (not skipped) against PostgreSQL
+  16 and successfully applied the auth, patient, billing, appointment, EHR,
+  notification, and audit production migrations.
+- Seven Phase 2 workflow tests verify patient registration idempotency and outbox
+  creation, merge/unmerge, billing idempotency, overlapping-appointment rejection,
+  encounter-linked EHR data and signed notes, notification dispatch persistence, and
+  idempotent hash-chained audit storage.
+- Testcontainers was updated to 1.21.4 for compatibility with the current Docker 29
+  engine used during verification.
+- docker compose config --quiet completed successfully.
+- git diff --check reported no whitespace errors, and the tracked-file hygiene check
+  found no target/, cdk.out/, .idea/, .env, or .iml paths remaining in the index.
+
+Completion boundaries:
+
+- "Phase 2 complete" means the durable core workflows specifically listed in this
+  roadmap are implemented. It does not mean the platform is ready for real PHI or
+  production use.
+- Selecting/configuring the external OIDC provider, deploying certificate automation
+  and an observability backend, adding patient/facility/consent ABAC, and completing
+  compliance validation require deployment and product-owner decisions. Those items
+  remain release gates and/or later-phase work.
+- Live external notification-provider acceptance requires deployment credentials and
+  remains a release gate. Broader clinical and revenue-cycle functionality, automatic
+  capture for auth/admin/gRPC paths, patient/facility/consent ABAC, interoperability,
+  compliance validation, and enterprise-scale operations remain in Phases 3 through 5.
+
+
+Current project inventory
+-------------------------
+Services and modules currently present:
+
+- api-gateway
+- auth-service
+- patient-service
+- billing-service
+- analytics-service
+- appointment-service
+- ehr-service
+- insurance-service
+- inventory-pharmacy-service
+- notification-service
+- audit-compliance-service
+- patient-portal-service
+- staff-dashboard-service
+- infrastructure
+- integration-tests
+- api-requests and grpc-requests
+
+Notable strengths:
+
+- The service decomposition covers many real patient management domains.
+- api-gateway centralizes routing, validates JWTs locally, propagates bearer identity,
+  and aggregates Swagger configuration for explicitly enabled environments.
+- auth-service has BCrypt password checking, enriched short-lived JWT generation,
+  endpoint restrictions, and a Flyway-managed PostgreSQL schema.
+- The Phase 2 core services now use Flyway-managed persistence, and patient registration
+  uses an asynchronous transactional-outbox flow to provision billing accounts.
+- OpenAPI dependencies exist for most HTTP services.
+- Each service has a Dockerfile.
+- There are basic RestAssured integration tests for auth and patient flows.
+- infrastructure uses AWS CDK concepts for VPC, ECS, RDS, MSK, logs, and API gateway
+  deployment shape.
+
+Major evidence from the original 2026-08-27 scan (historical baseline; superseded
+where the 2026-09-04 implementation update above states completion):
+
+- Most newer domain services use in-memory ConcurrentHashMap repositories:
+  appointment-service, ehr-service, insurance-service, inventory-pharmacy-service,
+  notification-service, audit-compliance-service, patient-portal-service,
+  staff-dashboard-service, and analytics-service.
+- billing-service has a gRPC endpoint but returns a hard-coded account id/status
+  instead of persisting or calculating billing state.
+- patient-service writes a Patient to its database, then calls billing synchronously,
+  then publishes a Kafka event. There is no transactional outbox, saga, retry policy,
+  or compensating workflow.
+- patient-service gRPC client uses ManagedChannelBuilder.usePlaintext().
+- auth-service SecurityConfig permits all requests and disables CSRF.
+- gateway validates JWT by calling auth-service /validate, but services do not enforce
+  role or patient-level authorization themselves.
+- JWTs carry email and role only. There is no user id, tenant/facility, scopes,
+  permissions, session id, token id, assurance level, or revocation model.
+- api-gateway routes are hard-coded to service hostnames locally and to
+  host.docker.internal in the prod profile.
+- application.properties files are minimal. Most services have no datasource,
+  migration, security, actuator, logging, tracing, or external dependency config.
+- infrastructure hard-codes JWT_SECRET in CDK code and uses hibernate ddl-auto=update
+  when a database exists.
+- infrastructure has isLocalStack=true, which disables RDS/MSK creation; fail.txt
+  shows LocalStack deployment failing on service discovery licensing.
+- Many target/ build output files and infrastructure/cdk.out artifacts are tracked.
+- .idea metadata appears tracked and contains local datasource/run configuration
+  details. Treat this as repo hygiene and potential secret-management risk.
+- Tests are mostly context smoke tests plus localhost integration tests. There is no
+  broad unit, contract, Testcontainers, security, migration, or event-driven testing.
+
+
+Enterprise readiness snapshot
+-----------------------------
+Area                                Current maturity       Required maturity
+
+Identity and access control          Foundation             Enterprise IAM with RBAC/ABAC, MFA, service enforcement
+Patient master data                  Durable core MPI       MPI, consent, facility ownership, advanced matching
+Clinical record/EHR                  Durable core model     Full clinical model, terminology, safety, audit
+Billing/revenue cycle                Persistent accounts    Invoices, charges, claims, remittance, payment
+Scheduling                           Conflict-safe core     Resources, reminders, recurring schedules, workflows
+Notifications                        Durable provider queue Templates, preferences, callbacks, localization
+Audit/compliance                     Automated durable core Retention, review workflows, export, external validation
+Persistence                          Core services durable  Database per service, backups, retention
+Messaging                            Versioned outbox core  Broader outbox/inbox, DLQ, contract governance
+Interoperability                     Mostly absent          FHIR, HL7 v2, X12, DICOM/documents as needed
+Infrastructure                       Prototype CDK          Deployable multi-env IaC with secrets, HA, monitoring
+Testing                              Foundation plus core   Full test pyramid and compliance/security tests
+Observability                        Foundation             Metrics, traces, logs, dashboards, alerts, SLOs
+Data governance                      Mostly absent          Classification, retention, de-identification, lineage
+User experience                      API only               Patient, staff, admin, billing, and clinical workflows
+
+
+What is needed for a full-fledged enterprise patient management system
+----------------------------------------------------------------------
+
+1. Product and domain foundation
+
+- Define the exact product type: clinic PMS, hospital EHR/PMS, outpatient EMR,
+  revenue-cycle system, patient portal, or integrated platform.
+- Define user personas: patient, guardian/proxy, receptionist, nurse, clinician,
+  pharmacist, lab staff, billing officer, claims officer, administrator, auditor,
+  external provider, and support engineer.
+- Define organization hierarchy: tenant, facility, department, ward/unit, room,
+  practitioner, care team, payer, employer, pharmacy, lab, and external partner.
+- Define clinical safety expectations, availability targets, regulatory markets,
+  data retention periods, disaster recovery targets, and support model.
+
+2. Patient master and registration
+
+- Add a Master Patient Index (MPI) or patient identity service.
+- Support MRN and external identifiers with issuing authority, facility, status,
+  and identifier history.
+- Support duplicate detection, merge/unmerge, survivorship rules, and audit trails.
+- Add demographics beyond name/email/address: phone, sex/gender fields appropriate
+  to jurisdiction, language, marital status, contact preference, emergency contacts,
+  next of kin, guarantor, guardian/proxy, employer, and communication consent.
+- Add patient status lifecycle: active, inactive, deceased, restricted, VIP/sensitive,
+  merged, archived.
+- Add privacy markers and consent flags that can influence authorization decisions.
+- Add address normalization and validation, optional geocoding, and contact
+  verification workflows.
+
+3. Clinical EHR capabilities
+
+- Replace record-only EHR skeletons with durable clinical resources and workflows:
+  encounters, visits, complaints, vitals, allergies, conditions/problems, diagnoses,
+  procedures, medications, prescriptions, immunizations, observations, care plans,
+  clinical notes, documents, lab orders, lab results, imaging orders, imaging reports,
+  referrals, discharge summaries, and clinical tasks.
+- Add clinical coding support: ICD-10 for diagnoses, SNOMED CT where licensed,
+  LOINC for observations/labs, RxNorm/NDC for medications, CPT/HCPCS where applicable,
+  and local code mappings as needed.
+- Add versioning, amendments, addenda, sign-off, co-sign, chart-locking, corrected
+  result workflows, and non-repudiation for clinical notes.
+- Add clinical decision support hooks for allergies, contraindications, duplicate
+  therapy, medication interactions, abnormal lab alerts, and preventive-care reminders.
+- Add patient-context safety controls: break-glass access, sensitive chart flags,
+  emergency access reason capture, and post-access review.
+
+4. Appointment and scheduling
+
+- Model providers, rooms, equipment, appointment types, visit reasons, location,
+  duration, capacity, recurring schedules, holidays, blackout periods, overbooking,
+  cancellations, rescheduling, and no-shows.
+- Enforce conflict detection transactionally. The current in-memory schedule cannot
+  prevent double booking across instances.
+- Add waitlist promotion, reminder timing, check-in/check-out, arrival status,
+  encounter creation, telehealth session lifecycle, consent capture, and cancellation
+  rules.
+- Integrate scheduling with patient, provider, notification, billing, and portal
+  workflows.
+
+5. Billing, payments, insurance, and claims
+
+- Replace the hard-coded billing gRPC response with persisted billing accounts,
+  invoices, invoice line items, charge capture, payments, adjustments, refunds,
+  write-offs, account balance, statements, and reconciliation.
+- Add service catalog and pricing rules, facility/provider-specific price books,
+  tax/discount rules where applicable, and authorization requirements.
+- Implement insurance eligibility verification, coverage rules, claim submission,
+  claim adjudication, denials, appeals, remittance posting, coordination of benefits,
+  patient responsibility calculation, and payment plans.
+- For US payer integrations, plan for X12 270/271 eligibility, 837 claims, 835 ERA,
+  276/277 claim status, and prior authorization workflows. Whether these are direct
+  integrations or clearinghouse integrations is a product decision.
+- Add payment gateway integration with tokenized cards/mobile money/bank transfers
+  depending on market, PCI scope reduction, receipts, refunds, and audit.
+
+6. Pharmacy and inventory
+
+- Persist supplies, medication stock, batches/lots, expiry dates, controlled-substance
+  handling where applicable, stock movements, receiving, transfers, adjustments,
+  reorder thresholds, purchase orders, suppliers, dispensing, returns, wastage,
+  and inventory valuation.
+- Link prescriptions to pharmacy dispensing and billing charges.
+- Add medication safety checks, substitutions, refill handling, partial dispense,
+  and patient instructions.
+
+7. Notifications and communications
+
+- Add delivery providers for email, SMS, push, and optionally WhatsApp or voice,
+  depending on market.
+- Add templates, localization, patient preferences, opt-in/opt-out, quiet hours,
+  delivery retries, bounce/failure handling, rate limiting, and delivery status.
+- Drive notifications mostly through events rather than direct manual POST calls.
+- Avoid putting PHI in messages unless allowed by consent and policy.
+
+8. Audit, compliance, and privacy operations
+
+- Make audit event capture automatic through HTTP filters, gRPC interceptors,
+  service methods, database write hooks, and event consumers.
+- Store audit events in an append-only durable store with tamper evidence, retention,
+  indexing, and export support.
+- Include actor id, actor role, patient id, resource type/id, action, outcome,
+  reason, source service, endpoint, request id, correlation id, IP/device where
+  applicable, timestamp, and before/after references without leaking full PHI.
+- Add audit queries for patient access reports, staff access reports, break-glass
+  review, failed access attempts, administrative changes, data exports, and incident
+  investigations.
+- Add formal support for access reviews, privilege recertification, sanctions process,
+  breach investigation, and evidence export.
+
+9. Interoperability
+
+- Establish a healthcare interoperability strategy rather than inventing all payloads.
+- Add FHIR APIs for core administrative and clinical resources. At minimum map the
+  internal model to Patient, Practitioner, Organization, Encounter, Appointment,
+  Observation, DiagnosticReport, MedicationRequest, MedicationDispense, Condition,
+  AllergyIntolerance, Immunization, DocumentReference, Claim, ExplanationOfBenefit,
+  and AuditEvent where applicable.
+- Choose a FHIR version/profile strategy. FHIR R4 is widely used and stable; R4B/R5
+  may be relevant depending on target integrations.
+- Add CapabilityStatement, SMART on FHIR/OAuth scopes if exposing patient/provider
+  APIs, search parameters, pagination, bundles, provenance, and conformance tests.
+- Add HL7 v2 ingestion for labs/admissions if integrating with existing hospital
+  systems, and DICOM/document storage if imaging is in scope.
+- Add terminology service or reference data service for code systems and value sets.
+- Add import/export jobs, partner credentials, consent checks, and reconciliation.
+
+10. Enterprise security architecture
+
+- Replace custom local JWT auth with an OAuth2/OIDC identity provider or a hardened
+  internal IAM service. Candidates include Keycloak, AWS Cognito, Auth0, Azure AD
+  B2C/Entra External ID, or an enterprise IdP selected by deployment context.
+- Use short-lived access tokens, refresh token rotation, revocation, MFA, account
+  lockout, password reset, device/session management, and login audit trails.
+- Enforce authorization in every service, not only at the gateway. Use method-level
+  policies and patient-level checks.
+- Implement RBAC plus ABAC. Examples: role, facility, care team relationship,
+  appointment relationship, patient consent, emergency access, payer relationship,
+  and support impersonation approval.
+- Propagate verified identity and correlation context from gateway to services with
+  signed headers or token forwarding. Do not trust arbitrary incoming identity headers.
+- Use TLS everywhere and mTLS for service-to-service traffic, especially gRPC.
+- Move secrets to a secret manager. Do not store JWT secrets, datasource passwords,
+  API keys, or local datasource credentials in source control or IDE metadata.
+- Add encryption at rest using managed keys, database backups encryption, object
+  storage encryption, and key rotation.
+- Add rate limiting, request size limits, CORS policy, WAF where applicable, bot
+  protection for patient portal, and admin action confirmation.
+- Add SAST, dependency scanning, container scanning, secret scanning, SBOM generation,
+  image signing, and patch management.
+
+11. Data architecture
+
+- Use a database-per-service pattern with explicit ownership. Start with PostgreSQL
+  for transactional domains unless there is a clear reason to introduce another store.
+- Add Flyway or Liquibase migrations for every service that owns a database.
+- Remove hibernate ddl-auto=update from non-local environments.
+- Add optimistic locking/version fields, created_at, updated_at, created_by,
+  updated_by, soft delete/deactivation where clinically appropriate, and audit
+  correlation fields.
+- Add idempotency keys for commands that can be retried: patient creation, appointment
+  booking, payments, claim submission, notification send, and external imports.
+- Add referential validation through owned APIs or local read models. Do not create
+  tight shared database coupling between services.
+- Add backup, point-in-time recovery, restore testing, retention policies, legal
+  hold, archival, and deletion/anonymization policies where legally permitted.
+- For analytics, create a de-identified or pseudonymized data pipeline. Do not stream
+  unnecessary direct identifiers like patient email to analytics by default.
+
+12. Messaging and consistency
+
+- Use a transactional outbox in services that both modify local state and publish
+  events.
+- Use inbox/idempotent consumer tables in services that process events.
+- Add event versioning, schema compatibility rules, event timestamp, producer,
+  correlation id, causation id, tenant/facility id, actor id, and event id.
+- Add retry topics, dead-letter topics, poison-message handling, monitoring, and
+  replay strategy.
+- Add sagas for multi-service business transactions:
+  - patient registration -> billing account -> notification -> audit
+  - appointment booking -> notification -> encounter preparation
+  - prescription -> pharmacy dispense -> billing charge -> notification
+  - insurance verification -> claim submission -> remittance posting
+- Define which operations require strong consistency and which can be eventual.
+
+13. API design and developer experience
+
+- Version APIs consistently, for example /api/v1/patients.
+- Use consistent error responses, preferably application/problem+json style.
+- Add pagination, sorting, filtering, field selection, ETags, idempotency keys,
+  request ids, and OpenAPI examples.
+- Add consistent DTO naming and validation. Prefer typed dates over string dates
+  when practical.
+- Add DTOs that do not expose unnecessary PHI.
+- Add service-level OpenAPI generation and gateway aggregation that works in every
+  environment.
+- Add contract tests for REST, gRPC, and event schemas.
+- Add a root Maven parent/reactor to centralize Java version, Spring Boot version,
+  plugin versions, dependency management, build rules, test conventions, and shared
+  quality gates.
+
+14. Observability and operations
+
+- Add Spring Boot Actuator to every service with health, readiness, liveness, metrics,
+  and info endpoints.
+- Add structured JSON logs with no PHI by default.
+- Add OpenTelemetry tracing across gateway, REST calls, gRPC calls, Kafka producers,
+  Kafka consumers, and database calls.
+- Add Micrometer metrics with Prometheus/Grafana or a cloud-native equivalent.
+- Add dashboards for service health, latency, error rate, saturation, Kafka lag,
+  database health, failed logins, authorization denies, notification delivery,
+  claim failures, appointment no-shows, and audit ingestion failures.
+- Define SLOs and alerts. For example: auth availability, patient chart retrieval
+  latency, appointment booking success, event processing lag, and backup freshness.
+- Add runbooks for incidents, deployment rollback, failed migrations, message replay,
+  breach investigation, and database restore.
+
+15. Infrastructure and deployment
+
+- Decide target runtime: Docker Compose for local development, ECS/Fargate for AWS,
+  Kubernetes, or another platform. The current CDK has AWS direction but is not
+  production-ready.
+- Add a root local development environment that starts PostgreSQL, Kafka, services,
+  and gateway with consistent environment variables.
+- Remove host.docker.internal from production profiles. Use service discovery,
+  internal load balancers, DNS, or service mesh.
+- Use private networking for internal services and expose only the gateway and public
+  frontend endpoints.
+- Add TLS termination, private certificate management, service mTLS, and secure
+  egress rules.
+- Add separate dev, test, staging, and production configurations.
+- Add autoscaling, task/container resource sizing, rolling/canary deployments,
+  blue-green where appropriate, and database migration rollout strategy.
+- Increase log retention beyond one day based on compliance and operations needs.
+- Add backup infrastructure, object storage for documents, KMS keys, secrets manager,
+  queue/topic provisioning, alarms, dashboards, and IAM least privilege.
+- Fix LocalStack deployment or split "local emulation" from "real AWS deployment."
+
+16. Testing and quality
+
+- Add unit tests for service logic, mappers, validators, and security policies.
+- Add controller tests with MockMvc/WebTestClient.
+- Add repository tests with Testcontainers PostgreSQL.
+- Add Kafka integration tests with Testcontainers Kafka or Redpanda.
+- Add gRPC contract and integration tests.
+- Add consumer-driven contract tests for service APIs and event schemas.
+- Add end-to-end tests for registration, login, patient CRUD, appointment booking,
+  EHR entry, billing charge, notification, audit event, and portal workflows.
+- Add negative tests for authorization, data isolation, invalid tokens, expired
+  tokens, patient-level access denial, duplicate records, invalid dates, and retries.
+- Add migration tests and rollback/forward-only migration validation.
+- Add performance/load tests for gateway, auth, patient search, appointment booking,
+  and event processing.
+- Add security tests: dependency scan, secret scan, SAST, container scan, dynamic API
+  testing, OWASP API Top 10 checks, and penetration-test readiness.
+- Use synthetic patient data only. Do not put real PHI in tests, logs, seed data,
+  screenshots, or fixtures.
+
+
+Service-by-service completion notes
+-----------------------------------
+
+api-gateway
+
+Current:
+- Routes to all services and aggregates Swagger URLs.
+- Validates protected-route JWT signature, issuer, audience, and expiry locally and
+  forwards the bearer token for independent downstream validation.
+- Protects API documentation and metrics by default outside explicitly enabled local
+  development configuration.
+
+Needed:
+- Add rate limiting, CORS policy, request size limits, security headers, request id,
+  and any remaining edge-specific access controls.
+- Make routes environment-driven or discovery-driven.
+- Complete external OIDC/JWKS and certificate rollout selected for deployment.
+
+auth-service
+
+Current:
+- Login validates BCrypt credentials against a Flyway-managed user store.
+- Short-lived JWTs contain stable subject, issuer, audience, token id, timestamps,
+  email, roles, and scopes; protected endpoints enforce resource-server policies.
+- Production infrastructure models the signing key and database credentials as
+  managed secrets; synthetic development seed data is migration-profile isolated.
+
+Needed:
+- Restrict endpoints to only expected public routes: login, token refresh, password
+  reset, health, and docs in local mode.
+- Add registration/admin user management or integrate with an external IdP.
+- Add MFA, password reset, account lockout, refresh token rotation, token revocation,
+  session/device management, audit logs, and user lifecycle.
+- Add tenant/facility and session/assurance context to the authorization model.
+- Complete asymmetric signing/JWKS and signing-key rotation through the selected IdP.
+- Add service-to-service authentication.
+
+patient-service
+
+Current:
+- Persists MPI-oriented patient records with MRNs, external identifiers, demographics,
+  contact details, lifecycle status, optimistic versioning, and archival.
+- Supports idempotent registration, duplicate candidate search, merge/unmerge history,
+  and lifecycle changes through secured APIs.
+- Commits state and minimal-PHI patient.events.v1 messages to a transactional outbox;
+  asynchronous consumers create the billing account and populate audit/analytics.
+
+Needed:
+- Add configurable probabilistic matching, identifier history/issuing authority, and
+  formal survivorship rules beyond the current deterministic duplicate candidates.
+- Add facility/tenant ownership, emergency contacts, guardians/proxies, privacy markers,
+  consent flags, and verified contact workflows.
+- Add patient-level authorization checks.
+- Add an operator workflow for outbox poison messages and formal replay procedures.
+
+billing-service
+
+Current:
+- Persists uniquely patient-keyed billing accounts with status, currency, balance,
+  optimistic versioning, timestamps, and idempotency keys.
+- Provides secured REST and gRPC account creation/read paths and consumes
+  PATIENT_REGISTERED from patient.events.v1 idempotently.
+- Maps validation/internal failures to proper gRPC status responses.
+
+Needed:
+- Add invoice model, line items, payments, charge capture, adjustments, refunds,
+  statements, reconciliation, and ledger-like accounting behavior.
+- Add billing lifecycle events through a service-owned outbox as revenue workflows
+  are introduced.
+- Add claim/insurance integration contracts.
+- Complete gRPC TLS/mTLS, deadlines, retry policy, and contract tests.
+
+appointment-service
+
+Current:
+- Persists schedules, appointments, waitlists, virtual consultations, consent forms,
+  and minute-granularity appointment reservations.
+- Enforces doctor/time uniqueness transactionally so overlapping bookings fail even
+  across instances; cancellations release reserved slots.
+
+Needed:
+- Add appointment types, locations, rooms, equipment, provider availability, recurring
+  schedules, no-show, check-in, check-out, rescheduling, cancellations, waitlist
+  promotion, and reminder events.
+- Integrate with patient-service, notification-service, staff-dashboard, billing,
+  and EHR encounter creation.
+
+ehr-service
+
+Current:
+- Persists encounters, histories, diagnoses, prescriptions, lab results, clinical
+  notes, imported external lab results, and vaccinations.
+- Links clinical entries to encounters, supports encounter closure, and signs/locks
+  clinical notes with optimistic versioning.
+
+Needed:
+- Treat this as the highest-risk service after auth and patient. Add patient-context
+  authorization, clinical terminology, detailed provenance, amendments/addenda,
+  co-signature, corrected-result, retention, and non-repudiation workflows.
+- Add observations/vitals, allergies, problems, medications, orders, care plans,
+  clinical notes, documents, imaging, referrals, and discharge summaries.
+- Add FHIR mappings and conformance tests.
+
+insurance-service
+
+Current:
+- Has in-memory policies, coverage verifications, claims, and adjudication status.
+
+Needed:
+- Add durable payer, plan, policy, member, eligibility, prior authorization, claim,
+  denial, appeal, remittance, and coordination-of-benefits models.
+- Integrate with billing and external payers/clearinghouses.
+- Add secure external partner credentials and audit.
+
+inventory-pharmacy-service
+
+Current:
+- Has in-memory supplies, medications, prescriptions, dispense action, and medication
+  charges.
+
+Needed:
+- Add durable inventory and pharmacy models with stock movements, batches, expiry,
+  supplier/purchase order flows, controlled-drug controls where applicable, dispense
+  workflows, medication safety checks, and billing integration.
+
+notification-service
+
+Current:
+- Persists a notification delivery queue and exposes secured HTTP submission/status
+  endpoints for generic notifications, appointment reminders, bill alerts, and MFA.
+- Consumes notification.requests.v1, invokes a configurable webhook provider, records
+  provider results, retries with backoff, and dead-letters exhausted deliveries.
+
+Needed:
+- Add channel-specific production adapters, template rendering, delivery callbacks,
+  preferences, quiet hours, opt-out, localization, rate limiting, and consent-aware
+  PHI-safe message policies.
+
+audit-compliance-service
+
+Current:
+- Persists append-only, idempotent audit events with previous/event hashes and indexed
+  actor, patient, resource, request, correlation, outcome, and time metadata.
+- Automatically consumes PHI-minimized HTTP access events from the Phase 2 core
+  services and versioned domain events; manual submission is no longer the main path.
+
+Needed:
+- Extend capture to authentication, gateway/admin, gRPC, and remaining services; add
+  database-enforced immutability, key-anchored tamper evidence, retention controls,
+  privileged access review, breach investigation, export, and alerting.
+
+analytics-service
+
+Current:
+- Consumes the minimal-PHI patient.events.v1 JSON envelope and logs operational event
+  identifiers rather than patient names or contact information.
+- Has in-memory population health trend/cohort/report endpoints.
+
+Needed:
+- Add de-identified data ingestion, metrics warehouse/lake, reporting jobs, cohort
+  rules, quality measures, regulatory report generation, dashboard APIs, and data
+  governance.
+- Remove direct identifiers from analytics events unless explicitly justified.
+
+patient-portal-service
+
+Current:
+- Has in-memory appointment request, record request, payment, and overview objects.
+
+Needed:
+- Add real patient-facing workflows: authenticated portal access, profile updates,
+  proxy/guardian access, appointment self-service, medical record download/export,
+  secure messaging, billing/payment, consent forms, notification preferences, MFA,
+  and accessibility.
+- Enforce that patients can only access their own permitted data unless proxy access
+  is granted.
+
+staff-dashboard-service
+
+Current:
+- Has in-memory daily dashboard, rounds, chart summaries, and tasks.
+
+Needed:
+- Add role-specific queues for reception, nurses, clinicians, billing, pharmacy,
+  labs, and administrators.
+- Integrate with EHR, appointments, patient, audit, and notifications.
+- Add task assignment, escalation, handoff, comments, due dates, status history,
+  and authorization.
+
+infrastructure
+
+Current:
+- AWS CDK style stack with VPC, ECS, RDS, MSK, CloudWatch Logs, and ALB concepts.
+- LocalStack mode disables RDS/MSK.
+- Fargate service discovery fails under current LocalStack license.
+- Secrets and env vars are not production-safe.
+
+Needed:
+- Split local development orchestration from production IaC.
+- Add Docker Compose for local work.
+- Add deployable AWS IaC with secrets manager, IAM least privilege, private networking,
+  service discovery/load balancing, RDS per owning service, MSK or managed Kafka,
+  backups, log retention, metrics, alarms, TLS, WAF, and deployment pipelines.
+- Stop tracking cdk.out and target outputs.
+
+integration-tests
+
+Current:
+- Auth and patient integration tests assume services are already running at
+  http://localhost:4004.
+
+Needed:
+- Add automated environment startup or Testcontainers-based integration testing.
+- Expand tests to every service and key workflow.
+- Add security, authorization, and negative path tests.
+
+
+Recommended additional services/modules
+---------------------------------------
+Do not create every service immediately. These can start as modules or bounded
+contexts and become services only when scale, ownership, or deployment needs justify
+the split.
+
+- Master Patient Index / identity matching service
+- Organization, facility, department, room, and resource service
+- Practitioner/staff credentialing and provider directory service
+- Encounter/visit service if not owned inside EHR
+- Orders/results service for lab, radiology, and procedures
+- Document management service for clinical documents, consent forms, and attachments
+- Consent and privacy preference service
+- Terminology/reference data service
+- Integration engine for FHIR, HL7 v2, X12, webhooks, partner APIs, and file drops
+- Search service for patient and clinical search with strict access control
+- Reporting/data warehouse service
+- Clinical decision support service
+- Admin/configuration service
+- Payment gateway adapter service
+- Notification preference and template management module
+- Support/admin impersonation module with approval and audit
+
+
+Original immediate high-priority backlog - status updated 2026-09-04
+--------------------------------------------------------------------
+
+1. [DONE] Add a root Maven parent/reactor and central dependency/plugin management.
+2. [DONE] Add a root .gitignore that excludes target/, cdk.out/, IDE workspace state,
+   local env files, logs, and generated artifacts.
+3. [DONE] Remove tracked target/ and cdk.out files from source control.
+4. [DONE] Remove or sanitize tracked IDE metadata that contains local datasource or secret
+   values.
+5. [DONE] Add local Docker Compose for PostgreSQL, Kafka, services, and gateway.
+6. [DONE] Standardize Spring Boot versions. auth-service currently differs from most
+   services.
+7. [PARTIAL] Add Actuator, structured logging, Micrometer, and OpenTelemetry
+   dependencies. Actuator/Micrometer/OpenTelemetry and correlated logs are present;
+   the production JSON log shipper and trace exporter remain deployment release gates.
+8. [DONE] Add Flyway or Liquibase migrations for auth-service and patient-service first.
+9. [PARTIAL] Replace in-memory repositories. Audit, appointment, EHR, billing, and
+   notification are durable; insurance, inventory/pharmacy, analytics, portal, and
+   dashboard remain for later phases.
+10. [DONE] Move JWT secret and database credentials out of source/IDE configs.
+11. [DONE] Replace gateway-only auth with Spring Security resource server enforcement in
+    every service.
+12. [PARTIAL] Add role and patient-level authorization tests. Coarse role enforcement
+    has a security test baseline; patient/facility/consent ABAC remains later work.
+13. [PLANNED] Replace plaintext gRPC with TLS/mTLS and add deadlines/timeouts. The
+    rollout and acceptance plan is complete; transport implementation is not.
+14. [DONE] Add transactional outbox to patient-service and idempotent consumer patterns.
+15. [PARTIAL] Automatic HTTP audit capture and versioned domain-event ingestion cover
+    patient, appointment, EHR, billing, and notification. Auth, gateway/admin, gRPC,
+    and later-phase services remain.
+16. [DONE] Redesign patient event schema to include event id, version, timestamp,
+    actor, correlation id, and minimal PHI.
+17. [DONE] Replace billing-service hard-coded response with durable idempotent account
+    creation.
+18. [DONE] Protect or disable Swagger docs in non-local environments.
+19. [PARTIAL] Add CI pipeline: compile, tests, formatting/static checks, dependency
+    scan, secret scan, container build, container scan, SBOM, and artifact publishing.
+    Build/test, hygiene, and Compose checks are complete; the advanced supply-chain
+    stages remain future CI work.
+20. [PARTIAL] Phase 2 service-level workflow and PostgreSQL migration tests cover each
+    durable component. A live Kafka end-to-end flow covering login -> patient creation
+    -> billing account -> audit record -> notification remains Phase 3 work.
+
+
+Suggested phased roadmap
+------------------------
+
+Phase 0: Repository and local development hygiene - COMPLETE 2026-09-01
+
+- [x] Root Maven parent/reactor.
+- [x] Root .gitignore and cleanup of tracked generated artifacts.
+- [x] Local Docker Compose.
+- [x] Environment variable conventions and example env files without secrets.
+- [x] Consistent package naming and dependency versions.
+- [x] Basic CI build for all services.
+
+Phase 1: Secure production foundation - COMPLETE 2026-09-01
+
+- [x] OAuth2/OIDC or hardened IAM direction.
+- [x] Spring Security resource server in all services.
+- [x] Service-level authorization policies.
+- [x] Secrets manager integration.
+- [x] TLS/mTLS plan.
+- [x] Actuator, metrics, logs, traces, dashboards, alerts.
+- [x] Database migrations for auth and patient.
+- [x] Testcontainers integration test setup.
+
+Phase 2: Durable core workflows - COMPLETE 2026-09-04
+
+- [x] Patient MPI and registration lifecycle.
+- [x] Billing account persistence and idempotency.
+- [x] Appointment persistence and conflict-safe scheduling.
+- [x] EHR persistence with encounters, diagnoses, prescriptions, labs, and notes.
+- [x] Notification provider integration.
+- [x] Automatic audit capture.
+- [x] Transactional outbox and event schema versioning.
+
+Phase 3: Clinical, revenue, and portal completeness
+
+- Insurance eligibility, claims, remittance, payment flows.
+- Pharmacy dispensing and inventory movement.
+- Patient portal self-service with proxy access and record requests.
+- Staff dashboard with queues and role-based workflows.
+- Clinical safety rules and task escalation.
+- Broader E2E and performance tests.
+
+Phase 4: Compliance and interoperability hardening
+
+- FHIR APIs and conformance testing.
+- HL7 v2/X12/DICOM/document integrations as required.
+- Consent/privacy service, break-glass access, access reviews.
+- Incident response and breach workflow support.
+- DR drills, backup/restore validation, retention and archival.
+- Security assessment and penetration-test readiness.
+
+Phase 5: Enterprise scale and analytics
+
+- Data warehouse/lake and de-identified analytics pipeline.
+- Quality measures and regulatory reports.
+- Autoscaling, multi-region/HA if required by SLO.
+- Advanced observability, chaos testing, and operational runbooks.
+- Product analytics and user workflow optimization.
+
+
+Useful official references checked
+----------------------------------
+
+- HHS HIPAA Security Rule summary:
+  https://www.hhs.gov/hipaa/for-professionals/security/laws-regulations/index.html
+- HHS HIPAA risk analysis guidance:
+  https://www.hhs.gov/hipaa/for-professionals/security/guidance/guidance-risk-analysis/index.html
+- HHS HIPAA minimum necessary requirement:
+  https://www.hhs.gov/hipaa/for-professionals/privacy/guidance/minimum-necessary-requirement/index.html
+- HHS HIPAA Breach Notification Rule:
+  https://www.hhs.gov/hipaa/for-professionals/breach-notification/index.html
+- ONC standards and technology overview:
+  https://healthit.gov/standards-and-technology/
+- ONC USCDI:
+  https://isp.healthit.gov/united-states-core-data-interoperability-uscdi
+- CMS Interoperability and Prior Authorization Final Rule:
+  https://www.cms.gov/initiatives/burden-reduction/overview/interoperability/policies-regulations/cms-interoperability-prior-authorization-final-rule-cms-0057-f
+- HL7 FHIR R4 overview:
+  https://hl7.org/fhir/R4/overview.html
+- HL7 FHIR R4 Patient resource:
+  https://hl7.org/fhir/R4/patient.html
+
+
+Bottom line
+-----------
+The repository now has the Phase 0 repository/local-development baseline, the Phase 1
+secure-production foundation, and the Phase 2 durable core workflows recorded above.
+Patient registration, billing-account creation, scheduling, core EHR records,
+notification delivery, audit capture, and patient-domain messaging no longer rely on
+the original in-memory or fire-and-forget prototypes.
+
+Update 2026-09-04: the next implementation target is Phase 3: clinical, revenue, and
+portal completeness. The system is still not approved for real patient data until the
+remaining deployment release gates, compliance review, external-provider acceptance,
+patient-context authorization, and later phases are completed.

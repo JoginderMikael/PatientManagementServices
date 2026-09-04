@@ -26,7 +26,7 @@ public class AuthService {
 
         return userService.findByEmail(loginRequestDto.getEmail())
                 .filter(u -> passwordEncoder.matches(loginRequestDto.getPassword(), u.getPassword()))
-                .map(u -> jwtUtil.generateToken(u.getEmail(), u.getRole()));
+                .map(jwtUtil::generateToken);
     }
 
     public boolean validateToken(String token) {
