@@ -46,9 +46,21 @@ public class SecurityConfig {
                         authorize.pathMatchers("/actuator/prometheus").hasRole("ADMIN");
                     }
                     if (publicApiDocs) {
-                        authorize.pathMatchers("/swagger-ui.html", "/swagger-ui/**", "/*-v3-api-docs/**").permitAll();
+                        authorize.pathMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/webjars/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/*-v3-api-docs/**"
+                        ).permitAll();
                     } else {
-                        authorize.pathMatchers("/swagger-ui.html", "/swagger-ui/**", "/*-v3-api-docs/**").hasRole("ADMIN");
+                        authorize.pathMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/webjars/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/*-v3-api-docs/**"
+                        ).hasRole("ADMIN");
                     }
                     authorize.anyExchange().authenticated();
                 })
