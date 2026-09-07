@@ -79,6 +79,13 @@ spring:
           filters:
             - StripPrefix=1
 
+        - id: billing-service-route
+          uri: ${BILLING_SERVICE_URI:http://billing-service:4001}
+          predicates:
+            - Path=/api/billing/**
+          filters:
+            - StripPrefix=1
+
         - id: patient-service-route
           uri: ${PATIENT_SERVICE_URI:http://patient-service:4000}
           predicates:

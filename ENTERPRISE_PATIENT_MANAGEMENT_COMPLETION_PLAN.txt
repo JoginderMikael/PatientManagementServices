@@ -1,6 +1,6 @@
 ENTERPRISE PATIENT MANAGEMENT SYSTEM COMPLETION ASSESSMENT AND ROADMAP
 Generated: 2026-08-27
-Updated: 2026-09-04 - Phase 2 durable core workflows completed
+Updated: 2026-09-07 - Phase 3 workflow APIs completed
 Repository: C:\S_Projects\PatientManagementServices
 
 Scope and assumptions
@@ -12,8 +12,8 @@ It was not produced from a running production environment or a live threat model
 The current codebase is best treated as an early-to-mid product implementation. It
 has a useful microservice outline, a secured API gateway, durable patient, billing,
 appointment, EHR, notification, and audit workflows, versioned Kafka integration,
-OpenAPI dependencies, Dockerfiles, and remaining prototype domains for insurance,
-inventory/pharmacy, patient portal, staff dashboard, and analytics.
+OpenAPI dependencies, Dockerfiles, and prototype analytics capabilities. Phase 3
+completion and its operating boundaries are recorded below.
 
 It is not yet enterprise-grade for real patient data. The largest gaps are durable
 persistence, authorization depth, compliance controls, clinical data modeling,
@@ -27,7 +27,72 @@ local healthcare, privacy, data residency, and breach notification requirements.
 This document is engineering guidance, not legal advice.
 
 
-Implementation update - 2026-09-04
+Implementation update - 2026-09-07: Phase 3
+-----------------------------------------
+
+Phase 3 is complete for the repository's workflow-API scope:
+
+- Insurance, pharmacy, portal, and staff services now persist records in isolated
+  PostgreSQL databases with Flyway migrations, constraints, indexes, and transactional
+  concurrency control. H2 is test-only for those four services.
+- Eligibility requires current recorded payer evidence; absent evidence stays
+  PENDING. Claims validate policy/invoice ownership, preserve submitted amounts,
+  enforce adjudication transitions, record remittances, and reconcile to billing.
+- Billing persists invoices and immutable payment/remittance postings. Reference
+  reuse is checked; invoice locks prevent concurrent overpayment; account and
+  invoice balances update atomically. Billing API routing is available at the gateway.
+- Pharmacy receipts persist batches and movements. Dispensing requires pharmacist
+  review, a current EHR safety check, and sufficient unexpired stock. FEFO batch
+  consumption, charges, movements, and completion are atomic and retry-safe.
+- Portal ownership uses verified subject-to-patient bindings. Proxy grants are
+  scoped, expiring, revocable, and renewable. Appointment request/cancellation and
+  staff resolution, reviewed record release/download, and payment reconciliation
+  persist state and actor history. Downloads recheck current access.
+- Staff APIs provide role-specific queues, assignment/claim, handoff, comments,
+  due dates, history, and scheduled overdue escalation. Clinical alerts can create
+  idempotent urgent tasks. Prescribing blocks recorded allergy matches, duplicate
+  active medications, and configured interaction pairs; closed encounters reject
+  new linked records. Active prescriptions can be discontinued.
+- New services emit the existing PHI-minimized HTTP audit contract. CI retains test
+  reports, isolated-service logs, and a performance report.
+
+Verification on 2026-09-07:
+
+- The complete Maven reactor passed verify. A subsequent targeted verify passed
+  for all changed domain services and integration-tests after final safety and
+  account-ledger changes.
+- Eleven real PostgreSQL migration tests passed. The isolated six-service E2E test
+  passed signed-HTTP revenue, pharmacy, portal, proxy-revocation, clinical-handoff,
+  and role-authorization flows.
+- A populated-queue/invoice workload completed 100 reads at concurrency 8, with
+  p95 latency of 56 ms against the 2,000 ms regression threshold.
+- Workflow tests cover duplicate/replayed requests, patient/proxy restrictions,
+  expiry, stock safety, concurrent dispensing/payments, and task escalation.
+- Final Surefire/Failsafe reports contain 60 tests: 51 passed, no failures or
+  errors, and 9 intentionally opt-in legacy live-gateway tests skipped. Focused
+  account-balance and current EHR dispensing-safety regression tests also passed.
+- Docker Compose configuration and git diff whitespace validation passed.
+
+Completion boundaries:
+
+- These are workflow APIs, consistent with this repository's existing product.
+  Payer eligibility/adjudication and payment settlement are staff-recorded external
+  results; no live clearinghouse submission or card charge is claimed. Provider
+  selection, credentials, and external acceptance remain deployment gates.
+- Portal appointment requests are staff-triaged and retain the booked appointment
+  reference; record downloads contain staff-reviewed releases, not FHIR exports.
+- Clinical checks use exact normalized medication/allergy labels and configured
+  pairs, supplemented by pharmacist review. No validated clinical drug catalog is
+  bundled. The cross-service EHR check is point-in-time.
+- The local performance workload is a regression check, not enterprise capacity
+  certification. Coarse mutation locks and legacy unpaginated administrative lists
+  remain documented scaling limits. The inherited HTTP audit publisher remains
+  best-effort. Phase 4/5 and deployment release gates still apply.
+- Endpoint details, permissions, retry semantics, test commands, and operating
+  limits are documented in docs/phase3-workflows.md.
+
+
+Historical implementation update - 2026-09-04
 ----------------------------------
 
 Status:
@@ -816,14 +881,14 @@ Phase 2: Durable core workflows - COMPLETE 2026-09-04
 - [x] Automatic audit capture.
 - [x] Transactional outbox and event schema versioning.
 
-Phase 3: Clinical, revenue, and portal completeness
+Phase 3: Clinical, revenue, and portal completeness - COMPLETE 2026-09-07 (workflow APIs)
 
-- Insurance eligibility, claims, remittance, payment flows.
-- Pharmacy dispensing and inventory movement.
-- Patient portal self-service with proxy access and record requests.
-- Staff dashboard with queues and role-based workflows.
-- Clinical safety rules and task escalation.
-- Broader E2E and performance tests.
+- [x] Insurance eligibility, claims, remittance, payment flows.
+- [x] Pharmacy dispensing and inventory movement.
+- [x] Patient portal self-service with proxy access and record requests.
+- [x] Staff dashboard with queues and role-based workflows.
+- [x] Clinical safety rules and task escalation.
+- [x] Broader E2E and performance tests.
 
 Phase 4: Compliance and interoperability hardening
 
@@ -874,7 +939,7 @@ Patient registration, billing-account creation, scheduling, core EHR records,
 notification delivery, audit capture, and patient-domain messaging no longer rely on
 the original in-memory or fire-and-forget prototypes.
 
-Update 2026-09-04: the next implementation target is Phase 3: clinical, revenue, and
-portal completeness. The system is still not approved for real patient data until the
+Update 2026-09-07: Phase 3 workflow APIs are complete within the boundaries above.
+The next implementation target is Phase 4. The system is still not approved for real patient data until the
 remaining deployment release gates, compliance review, external-provider acceptance,
 patient-context authorization, and later phases are completed.

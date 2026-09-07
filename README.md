@@ -110,7 +110,16 @@ Requirements: Java 21 or newer, Maven 3.9 or newer, Docker, and Docker Compose.
 1. Copy `.env.example` to `.env`.
 2. Replace every placeholder. Generate `JWT_SECRET` with `openssl rand -base64 32` or an equivalent cryptographically secure generator.
 3. Validate the resolved configuration with `docker compose config --quiet`.
-4. Start the environment with `docker compose up --build`.
+4. Build the application images with `docker compose --progress plain build`.
+5. Start the environment and wait for health checks with `docker compose up -d --wait --wait-timeout 300`.
+
+Compose waits for Kafka and application health checks before starting dependent
+services. Check `docker compose ps -a` for an unhealthy or exited container and
+`docker compose logs --tail 100 <service>` for its error. The first image build
+downloads Maven dependencies and can take several minutes. To reduce concurrent
+build load on smaller Docker installations, use `docker compose --parallel 2 build`.
+Database volumes survive rebuilds; changing a database password in `.env` does
+not update credentials already stored in an existing PostgreSQL volume.
 
 The local stack exposes the gateway on port `4004`, Prometheus on `9090`, and Grafana on `3000`. PostgreSQL is exposed for local tooling on ports `5000` (patient), `5001` (auth), `5002` (billing), `5003` (appointment), `5004` (EHR), `5005` (notification), and `5006` (audit). API documentation and Prometheus endpoints are public only because the Compose defaults explicitly enable them; non-local defaults require an authenticated `ADMIN` token.
 
@@ -119,6 +128,13 @@ Run the complete build with:
 ```shell
 mvn clean verify
 ```
+
+Phase 3 adds durable insurance, pharmacy, patient portal, staff queues, clinical
+safety, and revenue-ledger workflows. See [Phase 3 workflow instructions](docs/phase3-workflows.md)
+for endpoints, proxy identity setup, settlement steps, permissions, and operating
+limits. The four additional PostgreSQL databases use local ports 5007–5010.
+`mvn verify` now also starts an isolated six-service PostgreSQL E2E environment
+and runs a bounded concurrent read workload; Docker must be running.
 
 Live end-to-end tests remain opt-in and expect the Compose environment to be running:
 

@@ -36,3 +36,14 @@ jobs:
 
       - name: Build all modules
         run: mvn -B clean verify
+
+      - name: Upload test and performance reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-reports
+          path: |
+            **/target/surefire-reports/
+            **/target/failsafe-reports/
+            integration-tests/target/*-e2e.log
+            integration-tests/target/phase3-performance.json

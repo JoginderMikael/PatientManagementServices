@@ -34,9 +34,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http,
-                                                         ReactiveJwtAuthenticationConverter jwtAuthenticationConverter,
-                                                         @Value("${app.security.public-api-docs:false}") boolean publicApiDocs,
-                                                         @Value("${app.security.public-metrics:false}") boolean publicMetrics) {
+            ReactiveJwtAuthenticationConverter jwtAuthenticationConverter,
+            @Value("${app.security.public-api-docs:false}") boolean publicApiDocs,
+            @Value("${app.security.public-metrics:false}") boolean publicMetrics) {
         http.csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(authorize -> {
                     authorize.pathMatchers("/auth/**", "/actuator/health", "/actuator/info").permitAll();
@@ -51,27 +51,26 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/webjars/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/*-v3-api-docs/**"
-                        ).permitAll();
+                                "/*-v3-api-docs/**").permitAll();
                     } else {
                         authorize.pathMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/webjars/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/*-v3-api-docs/**"
-                        ).hasRole("ADMIN");
+                                "/*-v3-api-docs/**").hasRole("ADMIN");
                     }
                     authorize.anyExchange().authenticated();
                 })
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));
+                .oauth2ResourceServer(
+                        oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));
         return http.build();
     }
 
     @Bean
     public ReactiveJwtDecoder reactiveJwtDecoder(@Value("${jwt.secret}") String secret,
-                                                  @Value("${jwt.issuer}") String issuer,
-                                                  @Value("${jwt.audience}") String audience) {
+            @Value("${jwt.issuer}") String issuer,
+            @Value("${jwt.audience}") String audience) {
         NimbusReactiveJwtDecoder decoder = NimbusReactiveJwtDecoder.withSecretKey(secretKey(secret)).build();
         OAuth2TokenValidator<Jwt> issuerValidator = JwtValidators.createDefaultWithIssuer(issuer);
         OAuth2TokenValidator<Jwt> audienceValidator = new JwtClaimValidator<Collection<String>>(

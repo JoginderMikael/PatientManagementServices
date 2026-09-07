@@ -14,12 +14,22 @@ x-database-env: &database-env
   SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED:-true}
   SPRING_FLYWAY_LOCATIONS: ${SPRING_FLYWAY_LOCATIONS:-classpath:db/migration,classpath:db/dev-migration}
 
+# Application readiness, including database connectivity where applicable.
+x-service-healthcheck: &service-healthcheck
+  interval: 10s
+  timeout: 5s
+  start_period: 60s
+  retries: 12
+
 services:
   api-gateway:
     build:
       context: .
       dockerfile: ./api-gateway/Dockerfile
     image: api-gateway:latest
+    healthcheck:
+      <<: *service-healthcheck
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:4004/actuator/health"]
     container_name: api-gateway
     environment:
       <<: *service-env
@@ -27,29 +37,29 @@ services:
       - "4004:4004"
     depends_on:
       auth-service:
-        condition: service_started
+        condition: service_healthy
       billing-service:
-        condition: service_started
+        condition: service_healthy
       patient-service:
-        condition: service_started
+        condition: service_healthy
       analytics-service:
-        condition: service_started
+        condition: service_healthy
       appointment-service:
-        condition: service_started
+        condition: service_healthy
       ehr-service:
-        condition: service_started
+        condition: service_healthy
       insurance-service:
-        condition: service_started
+        condition: service_healthy
       notification-service:
-        condition: service_started
+        condition: service_healthy
       inventory-pharmacy-service:
-        condition: service_started
+        condition: service_healthy
       audit-compliance-service:
-        condition: service_started
+        condition: service_healthy
       patient-portal-service:
-        condition: service_started
+        condition: service_healthy
       staff-dashboard-service:
-        condition: service_started
+        condition: service_healthy
     networks:
       - internal
 
@@ -58,6 +68,9 @@ services:
       context: .
       dockerfile: ./auth-service/Dockerfile
     image: auth-service:latest
+    healthcheck:
+      <<: *service-healthcheck
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:4005/actuator/health"]
     container_name: auth-service
     environment:
       <<: [*service-env, *database-env]
@@ -97,6 +110,9 @@ services:
       context: .
       dockerfile: ./patient-service/Dockerfile
     image: patient-service:latest
+    healthcheck:
+      <<: *service-healthcheck
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:4000/actuator/health"]
     container_name: patient-service
     environment:
       <<: [*service-env, *database-env]
@@ -112,9 +128,9 @@ services:
       patient-service-db:
         condition: service_healthy
       billing-service:
-        condition: service_started
+        condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
     networks:
       - internal
 
@@ -142,6 +158,9 @@ services:
       context: .
       dockerfile: ./billing-service/Dockerfile
     image: billing-service:latest
+    healthcheck:
+      <<: *service-healthcheck
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:4001/actuator/health"]
     container_name: billing-service
     environment:
       <<: [*service-env, *database-env]
@@ -157,7 +176,7 @@ services:
       billing-service-db:
         condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
     networks:
       - internal
 
@@ -181,6 +200,9 @@ services:
       context: .
       dockerfile: ./analytics-service/Dockerfile
     image: analytics-service:latest
+    healthcheck:
+      <<: *service-healthcheck
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:4002/actuator/health"]
     container_name: analytics-service
     environment:
       <<: *service-env
@@ -189,7 +211,7 @@ services:
       - "4002:4002"
     depends_on:
       kafka:
-        condition: service_started
+        condition: service_healthy
     networks:
       - internal
 
@@ -198,6 +220,9 @@ services:
       context: .
       dockerfile: ./appointment-service/Dockerfile
     image: appointment-service:latest
+    healthcheck:
+      <<: *service-healthcheck
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:4010/actuator/health"]
     container_name: appointment-service
     environment:
       <<: [*service-env, *database-env]
@@ -211,7 +236,7 @@ services:
       appointment-service-db:
         condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
     networks:
       - internal
 
@@ -235,6 +260,9 @@ services:
       context: .
       dockerfile: ./ehr-service/Dockerfile
     image: ehr-service:latest
+    healthcheck:
+      <<: *service-healthcheck
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:4011/actuator/health"]
     container_name: ehr-service
     environment:
       <<: [*service-env, *database-env]
@@ -248,7 +276,7 @@ services:
       ehr-service-db:
         condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
     networks:
       - internal
 
@@ -272,11 +300,21 @@ services:
       context: .
       dockerfile: ./insurance-service/Dockerfile
     image: insurance-service:latest
+    healthcheck:
+      <<: *service-healthcheck
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:4012/actuator/health"]
     container_name: insurance-service
     environment:
-      <<: *service-env
+      <<: [*service-env, *database-env]
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://insurance-service-db:5432/insurance_service
+      SPRING_DATASOURCE_USERNAME: insurance_service
+      SPRING_DATASOURCE_PASSWORD: ${INSURANCE_SERVICE_DB_PASSWORD:-insurance_service_dev_password}
     expose:
       - "4012"
+    depends_on:
+      insurance-service-db:
+        condition: service_healthy
     networks:
       - internal
 
@@ -285,6 +323,9 @@ services:
       context: .
       dockerfile: ./notification-service/Dockerfile
     image: notification-service:latest
+    healthcheck:
+      <<: *service-healthcheck
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:4013/actuator/health"]
     container_name: notification-service
     environment:
       <<: [*service-env, *database-env]
@@ -301,7 +342,7 @@ services:
       notification-service-db:
         condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
     networks:
       - internal
 
@@ -325,11 +366,21 @@ services:
       context: .
       dockerfile: ./inventory-pharmacy-service/Dockerfile
     image: inventory-pharmacy-service:latest
+    healthcheck:
+      <<: *service-healthcheck
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:4014/actuator/health"]
     container_name: inventory-pharmacy-service
     environment:
-      <<: *service-env
+      <<: [*service-env, *database-env]
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://inventory-pharmacy-service-db:5432/inventory_pharmacy_service
+      SPRING_DATASOURCE_USERNAME: inventory_pharmacy_service
+      SPRING_DATASOURCE_PASSWORD: ${INVENTORY_PHARMACY_SERVICE_DB_PASSWORD:-inventory_pharmacy_service_dev_password}
     expose:
       - "4014"
+    depends_on:
+      inventory-pharmacy-service-db:
+        condition: service_healthy
     networks:
       - internal
 
@@ -338,6 +389,9 @@ services:
       context: .
       dockerfile: ./audit-compliance-service/Dockerfile
     image: audit-compliance-service:latest
+    healthcheck:
+      <<: *service-healthcheck
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:4015/actuator/health"]
     container_name: audit-compliance-service
     environment:
       <<: [*service-env, *database-env]
@@ -351,7 +405,7 @@ services:
       audit-compliance-service-db:
         condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
     networks:
       - internal
 
@@ -375,11 +429,21 @@ services:
       context: .
       dockerfile: ./patient-portal-service/Dockerfile
     image: patient-portal-service:latest
+    healthcheck:
+      <<: *service-healthcheck
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:4016/actuator/health"]
     container_name: patient-portal-service
     environment:
-      <<: *service-env
+      <<: [*service-env, *database-env]
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://patient-portal-service-db:5432/patient_portal_service
+      SPRING_DATASOURCE_USERNAME: patient_portal_service
+      SPRING_DATASOURCE_PASSWORD: ${PATIENT_PORTAL_SERVICE_DB_PASSWORD:-patient_portal_service_dev_password}
     expose:
       - "4016"
+    depends_on:
+      patient-portal-service-db:
+        condition: service_healthy
     networks:
       - internal
 
@@ -388,17 +452,95 @@ services:
       context: .
       dockerfile: ./staff-dashboard-service/Dockerfile
     image: staff-dashboard-service:latest
+    healthcheck:
+      <<: *service-healthcheck
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:4017/actuator/health"]
     container_name: staff-dashboard-service
     environment:
-      <<: *service-env
+      <<: [*service-env, *database-env]
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://staff-dashboard-service-db:5432/staff_dashboard_service
+      SPRING_DATASOURCE_USERNAME: staff_dashboard_service
+      SPRING_DATASOURCE_PASSWORD: ${STAFF_DASHBOARD_SERVICE_DB_PASSWORD:-staff_dashboard_service_dev_password}
     expose:
       - "4017"
+    depends_on:
+      staff-dashboard-service-db:
+        condition: service_healthy
     networks:
       - internal
+
+  insurance-service-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: insurance_service
+      POSTGRES_USER: insurance_service
+      POSTGRES_PASSWORD: ${INSURANCE_SERVICE_DB_PASSWORD:-insurance_service_dev_password}
+    ports: ["5007:5432"]
+    volumes: [insurance-service-db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+
+  inventory-pharmacy-service-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: inventory_pharmacy_service
+      POSTGRES_USER: inventory_pharmacy_service
+      POSTGRES_PASSWORD: ${INVENTORY_PHARMACY_SERVICE_DB_PASSWORD:-inventory_pharmacy_service_dev_password}
+    ports: ["5008:5432"]
+    volumes: [inventory-pharmacy-service-db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+
+  patient-portal-service-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: patient_portal_service
+      POSTGRES_USER: patient_portal_service
+      POSTGRES_PASSWORD: ${PATIENT_PORTAL_SERVICE_DB_PASSWORD:-patient_portal_service_dev_password}
+    ports: ["5009:5432"]
+    volumes: [patient-portal-service-db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+
+  staff-dashboard-service-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: staff_dashboard_service
+      POSTGRES_USER: staff_dashboard_service
+      POSTGRES_PASSWORD: ${STAFF_DASHBOARD_SERVICE_DB_PASSWORD:-staff_dashboard_service_dev_password}
+    ports: ["5010:5432"]
+    volumes: [staff-dashboard-service-db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
 
   kafka:
     image: dhi.io/kafka:4-debian-native
     container_name: kafka
+    # The native image has Bash but no Kafka CLI or curl. Kafka opens this
+    # listener after the broker has finished recovery and is ready to serve.
+    healthcheck:
+      test: ["CMD", "/bin/bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9092"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 12
     environment:
       KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS:-PLAINTEXT://kafka:9092}
       KAFKA_CONTROLLER_LISTENER_NAMES: ${KAFKA_CONTROLLER_LISTENER_NAMES:-CONTROLLER}
@@ -428,7 +570,7 @@ services:
       - "9090:9090"
     depends_on:
       api-gateway:
-        condition: service_started
+        condition: service_healthy
     networks:
       - internal
 
@@ -461,3 +603,7 @@ volumes:
   ehr-service-db-data:
   notification-service-db-data:
   audit-compliance-service-db-data:
+  insurance-service-db-data:
+  inventory-pharmacy-service-db-data:
+  patient-portal-service-db-data:
+  staff-dashboard-service-db-data:
