@@ -37,6 +37,9 @@ Every agent working here must:
     decision changes.
 11. Call out backend gaps instead of hiding them with unsafe browser behavior.
 12. Report assumptions, files changed, verification performed and remaining risk.
+13. Consult `mockups/` before adding or materially changing a route, layout or
+    workflow. Treat the mockups as an interaction reference, never as an API or
+    authorization contract.
 
 ## Skill selection matrix
 
@@ -48,6 +51,8 @@ Every agent working here must:
 | Build clinical forms | Forms and validation | Clinical UX, accessibility, API integration |
 | Handle login/roles | Authentication and session safety | Security/privacy, testing |
 | Add dashboard/table | Clinical UX | Data state, accessibility, performance |
+| Add/update a mockup | Mockup and interaction prototyping | Clinical UX, design system, accessibility |
+| Implement an approved mockup | Feature implementation | Mockup prototyping, API integration, testing |
 | Fix a frontend bug | Diagnosis and repair | Relevant domain skill, regression testing |
 | Improve styling | Design system | Accessibility, responsive design |
 | Prepare a release | Quality and release | Security/privacy, accessibility, documentation |
@@ -494,19 +499,90 @@ Use precise conclusions:
 
 Never use “complete” without stating the scope and remaining gates.
 
+## Skill 15: Mockup and interaction prototyping
+
+### Use when
+
+Creating, reviewing or changing the interactive reference screens in `mockups/`,
+or implementing production pages whose intended layout and workflow are already
+represented there.
+
+### Purpose and authority
+
+The mockup suite is the shared visual and interaction reference for the intended
+patient portal and staff application. It records route coverage, page hierarchy,
+role-filtered navigation, patient context, form structure, dense data presentation,
+workflow warnings, confirmations and important system states before live API
+integration.
+
+The authority order is:
+
+1. Backend controllers, DTOs, security annotations and verified OpenAPI contracts
+   define what the system accepts and who may perform an operation.
+2. `API.txt` catalogs the browser-facing gateway contract.
+3. `ARCHITECTURE.txt` defines durable frontend structure, safety and delivery order.
+4. `mockups/` defines the agreed presentation and interaction intent.
+
+A mockup must never be used to invent a field, status, permission or successful
+backend outcome. When a mockup conflicts with a verified contract, correct the
+mockup and document the gap before implementing the production page.
+
+### Responsibilities
+
+- Keep `mockups/index.html`, `mockups/styles.css`, `mockups/app.js` and
+  `mockups/README.md` self-contained, navigable and based only on synthetic data.
+- Maintain coverage for authentication, patient portal, staff patient context,
+  clinical work, revenue, pharmacy, operations, compliance, audit and reporting.
+- Demonstrate relevant loading, empty, stale, validation, denied, not-found,
+  conflict and unavailable states without making failed work appear successful.
+- Show consequential mutations through a review or confirmation step naming the
+  affected synthetic patient or resource.
+- Preserve the restrained clinical visual direction and responsive behavior from
+  320px patient screens through tablet and desktop staff layouts.
+- Keep visible labels, statuses, times, time zones, currencies and accountable
+  actors understandable without relying on color alone.
+- Update the mockup in the same change when an intentionally approved production
+  interaction materially diverges from it.
+
+### Production handoff procedure
+
+1. Identify the target mockup route and primary user outcome.
+2. Verify every displayed field, action, status and role against `API.txt` and the
+   current backend implementation.
+3. List unsupported mockup elements as backend gaps; do not simulate them in the
+   production application.
+4. Rebuild the screen with shared React primitives and feature-owned components;
+   never import or execute the vanilla mockup application from production code.
+5. Connect reads and mutations through the shared gateway client, then implement
+   the documented error, concurrency, privacy and cache behavior.
+6. Test the user outcome, role boundary, patient-context isolation, responsive
+   behavior and relevant system states.
+7. Compare the implemented route with the mockup for information hierarchy and
+   workflow intent, recording any approved differences.
+
+### Guardrails
+
+- Mockups remain local design artifacts and must not call live services, contain
+  credentials, store bearer tokens or accept real patient data.
+- Do not copy hard-coded mockup records into production runtime components.
+- Do not treat a hidden control or filtered menu as authorization enforcement.
+- Do not claim a route is implemented because its mockup exists.
+- Do not optimize production architecture around the single-file mockup structure.
+
 ## Multi-skill execution sequence
 
 For a typical new feature, apply skills in this order:
 
 1. Clinical product and workflow design defines the real user outcome.
-2. API contract integration verifies that the backend can support it.
-3. Frontend architecture stewardship places it in the correct boundary.
-4. Authentication/session and security/privacy define access and data handling.
-5. Forms/state/design-system skills implement the interaction.
-6. Accessibility engineering validates the interaction model.
-7. Testing builds regression evidence.
-8. Documentation maintenance records contract/architecture changes.
-9. Quality/release readiness verifies the deliverable.
+2. Mockup prototyping establishes or confirms the intended interaction.
+3. API contract integration verifies that the backend can support it.
+4. Frontend architecture stewardship places it in the correct boundary.
+5. Authentication/session and security/privacy define access and data handling.
+6. Forms/state/design-system skills implement the interaction.
+7. Accessibility engineering validates the interaction model.
+8. Testing builds regression evidence.
+9. Documentation maintenance records contract/architecture changes.
+10. Quality/release readiness verifies the deliverable.
 
 Parallel work is appropriate only when file ownership is disjoint and contracts are
 already stable. For example, an API-contract audit and visual component exploration
@@ -554,4 +630,3 @@ The highest-value starter tasks for this frontend are:
 8. Add patient registry and appointment-list workflows.
 9. Add read-oriented clinical chart tabs before enabling high-risk mutations.
 10. Establish CI for tests, production build, accessibility and dependency scanning.
-

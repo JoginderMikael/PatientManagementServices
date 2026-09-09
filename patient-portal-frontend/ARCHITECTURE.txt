@@ -196,6 +196,18 @@ Use this target structure:
     types/
     index.tsx
 
+  mockups/
+    index.html                interactive route and screen reference
+    styles.css                mockup-only clinical design tokens and layout
+    app.js                    synthetic navigation, states and interactions
+    README.md                 screen inventory and review instructions
+
+The mockup suite is a design and workflow reference, not production source. Never
+import mockup code or hard-coded records into `src/`. Production implementation
+must use verified API types, shared React primitives and feature-owned state. When
+an approved workflow change affects information hierarchy or interaction intent,
+update the corresponding mockup and production documentation together.
+
 Each feature should normally contain:
 
   api.ts                     query/mutation functions
@@ -451,31 +463,140 @@ mistaken for production.
 15. DELIVERY PHASES
 -------------------
 
-Foundation
+Delivery proceeds through the following ordered phases. A later phase may be
+explored in `mockups/`, but its production implementation does not begin until the
+preceding phase exit gate is met. Each production route is implemented from the
+approved interaction reference only after its fields, statuses, actions and roles
+have been checked against the current backend contract.
 
-  1. Replace the hard-coded dashboard with AppProviders, router and app shell.
-  2. Add design tokens, shared feedback states and accessible form primitives.
-  3. Add typed API client, authentication and error normalization.
-  4. Establish MSW fixtures and CI checks for typecheck/test/build.
+PHASE 0 - INTERACTION BASELINE
 
-Minimal patient portal
+Scope:
 
-  1. Overview.
-  2. Appointment requests/cancellation.
-  3. Record requests/download.
-  4. Payment submission and activity.
+  1. Maintain the self-contained `mockups/` suite covering authentication, all
+     patient portal routes, staff operations routes and shared system states.
+  2. Review route hierarchy, role-filtered navigation, patient context, forms,
+     tables, safety alerts and consequential confirmations with stakeholders.
+  3. Record unsupported controls or fields as contract gaps instead of presenting
+     them as working production capabilities.
 
-Minimal staff application
+Exit gate:
 
-  1. Work queue and task lifecycle.
-  2. Patient registry and patient context.
-  3. Appointment list/booking.
-  4. Clinical chart read views plus carefully gated write actions.
+  - Every planned route has an identifiable mockup screen and primary user outcome.
+  - Synthetic content, 320px-to-desktop responsiveness and keyboard-reachable
+    representative interactions have been reviewed.
+  - Mockup/API discrepancies are resolved or listed as explicit implementation gaps.
 
-Specialized operations
+PHASE 1 - APPLICATION FOUNDATION
 
-  Billing/insurance, pharmacy/inventory, notification, compliance/audit and
-  analytics screens follow after the minimal workflows are usable and tested.
+Scope:
+
+  1. Replace the hard-coded dashboard with AppProviders, route composition and the
+     shared patient/staff application shells.
+  2. Add design tokens and the shared accessible primitives defined by the source
+     structure and the clinical design-system skill.
+  3. Implement the typed gateway client, normalized ApiError handling, correlation
+     IDs, response decoding and safe retry policy.
+  4. Implement login, validation, logout, route guards, role navigation and session
+     cache clearing without persistent PHI storage.
+  5. Establish synthetic factories, MSW handlers, provider-aware rendering and CI
+     checks for tests and production builds.
+
+Exit gate:
+
+  - Login, 401 session clearing, 403 session preservation and role-filtered routes
+    pass automated tests.
+  - The shared shell, feedback states and form primitives pass keyboard and basic
+    automated accessibility checks at patient mobile and staff desktop widths.
+  - Typecheck, unit tests and production build pass without production credentials
+    or hard-coded patient records.
+
+PHASE 2 - MINIMAL PATIENT PORTAL
+
+Scope:
+
+  1. Implement Overview from `/api/portal/patients/{patientId}/overview`.
+  2. Implement appointment requests and cancellation of unresolved requests.
+  3. Implement record requests and no-store download of fulfilled text releases.
+  4. Implement invoice/payment activity and idempotent payment submission.
+  5. Implement profile presentation and only those proxy grant/revocation controls
+     supported by safe identity selection and the verified backend contract.
+
+Exit gate:
+
+  - Login-to-overview, appointment request/cancel, record request/download and
+    payment workflows pass integration tests with synthetic gateway responses.
+  - Owner/proxy scope denials, duplicate payment replay, 409-not-ready download,
+    empty, stale and 503 states are distinguishable and recoverable where allowed.
+  - Patient pages work from 320px upward and expose no sensitive data to URLs,
+    persistent storage, logs or analytics.
+
+PHASE 3 - CORE STAFF AND CLINICAL WORKFLOWS
+
+Scope:
+
+  1. Implement the role-scoped work queue with URL filters, claim, handoff, comment,
+     history and completion behavior.
+  2. Implement patient search, duplicate review, registration, patient selection,
+     persistent patient banner, demographics and lifecycle presentation.
+  3. Implement appointment list/day views, availability and conflict-aware booking.
+  4. Implement read-first chart sections for summary, encounters, history/allergies,
+     diagnoses, prescriptions, laboratory results, notes and vaccinations.
+  5. Enable carefully gated writes only after confirmations, 409 safety handling and
+     authoritative refetch behavior are proven.
+
+Exit gate:
+
+  - Search/select patient, queue lifecycle, appointment booking and chart-read
+    journeys pass against synthetic integrated services.
+  - Patient changes cancel obsolete reads and clear patient-scoped cached data.
+  - Cross-role and cross-patient denials, signed-note immutability and medication
+    safety conflicts have automated coverage.
+
+PHASE 4 - SPECIALIZED OPERATIONS
+
+Scope:
+
+  1. Billing and insurance: accounts, invoices, postings, policy coverage, claims,
+     adjudication, remittance and reconciliation.
+  2. Pharmacy and inventory: catalogue, batches, movements, safety review,
+     dispensing, medication charge and billing.
+  3. Notifications: permitted operational messages and delivery state.
+  4. Privacy and compliance: consent, emergency-access review, cases, transitions
+     and legal holds.
+  5. Audit and analytics: read-only evidence, population trends, cohorts and
+     regulatory reports.
+
+Exit gate:
+
+  - Each specialty route passes its role matrix, state-transition, idempotency or
+    concurrency tests as applicable.
+  - Pharmacy safety, claim/payment state, legal holds and emergency access never use
+    optimistic completion and always refetch authoritative results.
+  - Audit/analytics views prevent raw identifiers, PHI and small sensitive cells
+    from leaking through telemetry or exports.
+
+PHASE 5 - INTEGRATION, HARDENING AND RELEASE
+
+Scope:
+
+  1. Run one synthetic end-to-end journey per role family plus cross-role and
+     cross-patient denial tests.
+  2. Complete accessibility review, keyboard-only journeys, responsive verification
+     and supported browser/device checks.
+  3. Verify content security policy, cache/download headers, telemetry redaction,
+     dependency risk, source-map policy and performance budgets.
+  4. Diff generated API contracts against the deployed backend revision, update
+     fixtures and resolve or document drift.
+  5. Obtain the named privacy, security and release approvals required by policy.
+
+Exit gate:
+
+  - All criteria in section 16 pass for every release-scope feature.
+  - The synthetic integrated deployment passes critical journeys without unresolved
+    severity-one safety, privacy, security or accessibility defects.
+  - Engineering may label the result `release candidate`; only the named approving
+    authority may label it `production approved`.
 
 16. DEFINITION OF DONE FOR A FRONTEND FEATURE
 ---------------------------------------------
@@ -491,4 +612,3 @@ A feature is done only when:
   - Keyboard and screen-reader basics pass; responsive layouts are verified.
   - Tests use synthetic data and cover the primary user outcome.
   - The API.txt contract and this architecture remain accurate after the change.
-
