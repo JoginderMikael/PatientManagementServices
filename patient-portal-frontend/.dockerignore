@@ -1,0 +1,12 @@
+node_modules
+build
+coverage
+mockups
+.env
+.env.*
+!.env.example
+npm-debug.log*
+README.md
+API.txt
+ARCHITECTURE.txt
+skills.md

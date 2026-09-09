@@ -41,3 +41,18 @@ handling and basic accessibility checks.
 - `mockups` — interaction reference only; never imported into production code
 
 See `ARCHITECTURE.txt`, `API.txt` and `skills.md` before adding workflows.
+
+## Container
+
+The production image builds the React application and serves it from a small
+non-root Node process. Within Compose, same-origin `/auth` and `/api` requests
+are proxied to `api-gateway`; browser code never calls a service container directly.
+
+From the repository root:
+
+```text
+docker compose build patient-portal-frontend
+docker compose up -d patient-portal-frontend
+```
+
+Open `http://localhost:8085`. Set `FRONTEND_PORT` in the root `.env` file to use a different host port.

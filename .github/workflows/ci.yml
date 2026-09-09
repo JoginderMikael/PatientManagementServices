@@ -25,7 +25,9 @@ jobs:
           cache-dependency-path: patient-portal-frontend/package-lock.json
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: |
+          npm install --global npm@11.6.2
+          npm ci --no-audit --no-fund
 
       - name: Typecheck frontend
         run: npm run typecheck

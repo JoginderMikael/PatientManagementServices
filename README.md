@@ -121,7 +121,7 @@ build load on smaller Docker installations, use `docker compose --parallel 2 bui
 Database volumes survive rebuilds; changing a database password in `.env` does
 not update credentials already stored in an existing PostgreSQL volume.
 
-The local stack exposes the gateway on port `4004`, Prometheus on `9090`, and Grafana on `3000`. PostgreSQL is exposed for local tooling on ports `5000` (patient), `5001` (auth), `5002` (billing), `5003` (appointment), `5004` (EHR), `5005` (notification), and `5006` (audit). API documentation and Prometheus endpoints are public only because the Compose defaults explicitly enable them; non-local defaults require an authenticated `ADMIN` token.
+The local stack exposes the patient-management frontend on port `8085`, the gateway on port `4004`, Prometheus on `9090`, and Grafana on `3000`. The frontend serves the React production build and proxies `/auth` and `/api` requests to the gateway over the internal Compose network. Override its host port with `FRONTEND_PORT` when needed. PostgreSQL is exposed for local tooling on ports `5000` (patient), `5001` (auth), `5002` (billing), `5003` (appointment), `5004` (EHR), `5005` (notification), and `5006` (audit). API documentation and Prometheus endpoints are public only because the Compose defaults explicitly enable them; non-local defaults require an authenticated `ADMIN` token.
 
 Run the complete build with:
 
