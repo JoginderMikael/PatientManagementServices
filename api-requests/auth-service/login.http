@@ -1,8 +1,150 @@
-### LOGIN user
-POST http://localhost:4004/auth/login
+@baseUrl = http://localhost:4004
+@developmentPassword = DevOnly!234
+
+# Synthetic development accounts only. All accounts below use DevOnly!234.
+# Never enable db/dev-migration or reuse these credentials outside local testing.
+
+### ADMIN 1
+POST {{baseUrl}}/auth/login
 Content-Type: application/json
-{
-"email" : "testuser@test.com",
-"password" : "password123"
-}
+
+{"email":"admin.one@example.test","password":"{{developmentPassword}}"}
+
+### ADMIN 2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"admin.two@example.test","password":"{{developmentPassword}}"}
+
+### PATIENT 1
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"patient.one@example.test","password":"{{developmentPassword}}"}
+
+### PATIENT 2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"patient.two@example.test","password":"{{developmentPassword}}"}
+
+### CLINICIAN 1
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"clinician.one@example.test","password":"{{developmentPassword}}"}
+
+### CLINICIAN 2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"clinician.two@example.test","password":"{{developmentPassword}}"}
+
+### NURSE 1
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"nurse.one@example.test","password":"{{developmentPassword}}"}
+
+### NURSE 2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"nurse.two@example.test","password":"{{developmentPassword}}"}
+
+### REGISTRATION_STAFF 1
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"registration.one@example.test","password":"{{developmentPassword}}"}
+
+### REGISTRATION_STAFF 2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"registration.two@example.test","password":"{{developmentPassword}}"}
+
+### RECEPTIONIST 1
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"receptionist.one@example.test","password":"{{developmentPassword}}"}
+
+### RECEPTIONIST 2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"receptionist.two@example.test","password":"{{developmentPassword}}"}
+
+### BILLING_STAFF 1
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"billing.one@example.test","password":"{{developmentPassword}}"}
+
+### BILLING_STAFF 2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"billing.two@example.test","password":"{{developmentPassword}}"}
+
+### PHARMACIST 1
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"pharmacist.one@example.test","password":"{{developmentPassword}}"}
+
+### PHARMACIST 2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"pharmacist.two@example.test","password":"{{developmentPassword}}"}
+
+### LAB_STAFF 1
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"lab.one@example.test","password":"{{developmentPassword}}"}
+
+### LAB_STAFF 2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"lab.two@example.test","password":"{{developmentPassword}}"}
+
+### PRIVACY_OFFICER 1
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"privacy.one@example.test","password":"{{developmentPassword}}"}
+
+### PRIVACY_OFFICER 2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"privacy.two@example.test","password":"{{developmentPassword}}"}
+
+### AUDITOR 1
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"auditor.one@example.test","password":"{{developmentPassword}}"}
+
+### AUDITOR 2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"auditor.two@example.test","password":"{{developmentPassword}}"}
+
+### ANALYST 1
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"analyst.one@example.test","password":"{{developmentPassword}}"}
+
+### ANALYST 2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"analyst.two@example.test","password":"{{developmentPassword}}"}
 
