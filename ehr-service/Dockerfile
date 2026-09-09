@@ -33,4 +33,6 @@ COPY --from=builder /workspace/ehr-service/target/ehr-service-0.0.1-SNAPSHOT.jar
 
 EXPOSE 4011
 
+USER 10001:10001
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

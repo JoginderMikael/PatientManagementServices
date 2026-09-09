@@ -1,6 +1,6 @@
 ENTERPRISE PATIENT MANAGEMENT SYSTEM COMPLETION ASSESSMENT AND ROADMAP
 Generated: 2026-08-27
-Updated: 2026-09-07 - Phase 3 workflow APIs completed
+Updated: 2026-09-08 - Phase 4 repository baseline complete; deployment placeholders open
 Repository: C:\S_Projects\PatientManagementServices
 
 Scope and assumptions
@@ -890,14 +890,48 @@ Phase 3: Clinical, revenue, and portal completeness - COMPLETE 2026-09-07 (workf
 - [x] Clinical safety rules and task escalation.
 - [x] Broader E2E and performance tests.
 
-Phase 4: Compliance and interoperability hardening
+Phase 4: Compliance and interoperability hardening - REPOSITORY BASELINE COMPLETE 2026-09-08
 
-- FHIR APIs and conformance testing.
-- HL7 v2/X12/DICOM/document integrations as required.
-- Consent/privacy service, break-glass access, access reviews.
-- Incident response and breach workflow support.
-- DR drills, backup/restore validation, retention and archival.
-- Security assessment and penetration-test readiness.
+Owner direction (2026-09-08): leave partner requirements, patient/facility access
+policy, retention periods and recovery targets blank for later completion.
+The fill-in tables are in docs/phase4-deployment-inputs.md. These deliberate
+placeholders do not enable integrations or approve production access/deletion.
+Completion covers the scoped FHIR/privacy, compliance-case, audit, recovery and
+security controls listed below. Partner adapters, platform-wide authorization,
+production storage integrations and independent acceptance remain deferred until
+the owner supplies the inputs; they are not claimed as implemented.
+
+- [IMPLEMENTED] Scoped FHIR R4 Patient read API, CapabilityStatement,
+  OperationOutcome, contract tests and official-validator fixture validation.
+  Broader clinical resources, implementation-guide and partner acceptance remain.
+- [GATED] HL7 v2/X12/DICOM transports require named partner requirements.
+  Interface decision/acceptance matrix and document-review cases are documented;
+  no live partner adapter or binary document storage is claimed.
+- [IMPLEMENTED BASELINE] Durable consent, actor-bound one-hour emergency grants,
+  revocation, independent emergency review, transactional permit/deny evidence,
+  and access-review cases. Enforcement covers FHIR Patient read only; platform-wide
+  patient/facility/purpose authorization remains a material release gate.
+- [IMPLEMENTED] Durable incident lifecycle, notification-decision/receipt evidence,
+  owner/due-date tracking, legal-hold case controls and immutable history API.
+  Legal determinations, statutory deadlines and external notices remain external.
+- [IMPLEMENTED BASELINE] Synthetic eleven-service PostgreSQL backup/restore drill,
+  schema/data/constraint checks, corrupt-archive rejection, retention-review cases,
+  retention policy template and archival/recovery runbooks. Production RPO/RTO,
+  encrypted backup scheduling, storage holds and archive execution remain gated.
+- [IMPLEMENTED BASELINE] Serialized/versioned audit hash appends, PostgreSQL
+  evidence-immutability provisioning, SBOM/security scan gate and penetration-test
+  readiness procedure. Deployment hardening, finding remediation and an independent
+  penetration test remain required. See docs/phase4-compliance.md for exact scope,
+  API contracts, verification commands and limitations.
+- [VERIFIED] Patched Maven dependency baseline and non-root runtime user in all
+  thirteen Java application Dockerfiles. The resolved 306-component Maven SBOM
+  (including test dependencies) and source secret/configuration scan passed the
+  HIGH/CRITICAL gate with zero findings. Frontend dependencies and operating-system
+  image vulnerabilities are outside this Maven gate and remain release checks.
+- [VERIFIED] Malformed privacy-decision shapes fail closed with 503; explicit
+  denial remains 403. Tests cover emergency-header/bearer forwarding, gateway
+  route loading and anonymous denial. Security-gate tests reject stale evidence
+  and preserve source findings when dependencies fail.
 
 Phase 5: Enterprise scale and analytics
 
@@ -940,6 +974,8 @@ notification delivery, audit capture, and patient-domain messaging no longer rel
 the original in-memory or fire-and-forget prototypes.
 
 Update 2026-09-07: Phase 3 workflow APIs are complete within the boundaries above.
-The next implementation target is Phase 4. The system is still not approved for real patient data until the
+Update 2026-09-08: Phase 4 controls and hardening are implemented as recorded above;
+owner-specific deployment inputs are blank in docs/phase4-deployment-inputs.md.
+The system is still not approved for real patient data until the
 remaining deployment release gates, compliance review, external-provider acceptance,
 patient-context authorization, and later phases are completed.

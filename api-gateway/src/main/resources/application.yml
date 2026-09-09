@@ -72,6 +72,20 @@ spring:
   cloud:
     gateway:
       routes:
+        - id: fhir-patient-route
+          uri: ${PATIENT_SERVICE_URI:http://patient-service:4000}
+          predicates:
+            - Path=/api/fhir/**
+          filters:
+            - StripPrefix=1
+
+        - id: compliance-route
+          uri: ${AUDIT_COMPLIANCE_SERVICE_URI:http://audit-compliance-service:4015}
+          predicates:
+            - Path=/api/compliance/**
+          filters:
+            - StripPrefix=1
+
         - id: auth-service-route
           uri: ${AUTH_SERVICE_URI:http://auth-service:4005}
           predicates:

@@ -1,0 +1,16 @@
+{
+  "status": "REQUIRES_OWNER_APPROVAL",
+  "policyVersion": 1,
+  "automaticDeletionEnabled": false,
+  "categories": [
+    {"name": "clinical-records", "retentionDays": null, "owner": "records-management"},
+    {"name": "audit-evidence", "retentionDays": null, "owner": "privacy-officer"},
+    {"name": "backups", "retentionDays": null, "owner": "operations"},
+    {"name": "integration-documents", "retentionDays": null, "owner": "records-management"}
+  ],
+  "requirements": [
+    "Legal holds override expiry and include archived copies and backups",
+    "Archive only after checksum, access-control and restore verification",
+    "Destruction requires approved policy, independent approval and durable evidence"
+  ]
+}

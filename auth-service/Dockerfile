@@ -33,4 +33,6 @@ COPY --from=builder /workspace/auth-service/target/auth-service-0.0.1-SNAPSHOT.j
 
 EXPOSE 4005
 
+USER 10001:10001
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -7,6 +7,10 @@
 target/
 */target/
 
+# Python verification tool caches
+__pycache__/
+*.py[cod]
+
 # IDE and local machine metadata
 .idea/
 *.iml

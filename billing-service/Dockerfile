@@ -34,4 +34,6 @@ COPY --from=builder /workspace/billing-service/target/billing-service-0.0.1-SNAP
 EXPOSE 4001
 EXPOSE 9001
 
+USER 10001:10001
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

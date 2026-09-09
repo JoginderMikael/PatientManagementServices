@@ -146,3 +146,12 @@ Production security, secret, TLS/mTLS, and observability decisions are documente
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Phase 4 compliance and interoperability
+
+FHIR Patient read, scoped consent and emergency access, compliance case workflows,
+and recovery/security verification are documented in
+[docs/phase4-compliance.md](docs/phase4-compliance.md), including production release
+gates and unsupported partner interfaces.
+
+Owner-supplied partner, authorization, retention and recovery decisions have blank
+fields in [Phase 4 deployment inputs](docs/phase4-deployment-inputs.md).

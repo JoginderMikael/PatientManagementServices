@@ -33,4 +33,6 @@ COPY --from=builder /workspace/notification-service/target/notification-service-
 
 EXPOSE 4013
 
+USER 10001:10001
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -75,8 +75,12 @@ class DatabaseMigrationsTest {
 
   @Test
   void appliesAuditProductionMigrations() throws Exception {
-    assertEquals(1, migrate("audit_service", "audit-compliance-service").migrationsExecuted);
+    assertEquals(3, migrate("audit_service", "audit-compliance-service").migrationsExecuted);
     assertTrue(tableExists("audit_service", "audit_event"));
+    assertTrue(tableExists("audit_service", "privacy_grant"));
+    assertTrue(tableExists("audit_service", "compliance_case"));
+    assertTrue(tableExists("audit_service", "compliance_history"));
+    assertTrue(tableExists("audit_service", "audit_chain_head"));
   }
 
   @Test

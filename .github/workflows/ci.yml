@@ -37,6 +37,12 @@ jobs:
       - name: Build all modules
         run: mvn -B clean verify
 
+      - name: Validate synthetic backup and restore
+        run: python3 ops/recovery/restore_drill.py
+
+      - name: Validate synthetic FHIR R4 responses
+        run: python3 ops/interoperability/validate_fhir.py
+
       - name: Upload test and performance reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -47,3 +53,6 @@ jobs:
             **/target/failsafe-reports/
             integration-tests/target/*-e2e.log
             integration-tests/target/phase3-performance.json
+            integration-tests/target/phase4-restore.json
+            integration-tests/target/fhir-validation.json
+            patient-service/target/fhir-conformance/

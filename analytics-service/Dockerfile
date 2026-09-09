@@ -33,4 +33,6 @@ COPY --from=builder /workspace/analytics-service/target/analytics-service-0.0.1-
 
 EXPOSE 4002
 
+USER 10001:10001
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

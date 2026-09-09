@@ -38,6 +38,10 @@ public class AuditEvent {
     private String previousHash;
     @Column(nullable = false, length = 64)
     private String eventHash;
+    @Column(nullable = false)
+    private short hashVersion = 2;
+
+    public short getHashVersion() { return hashVersion; }
 
     protected AuditEvent() {
     }

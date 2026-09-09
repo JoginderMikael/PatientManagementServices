@@ -33,4 +33,6 @@ COPY --from=builder /workspace/patient-service/target/patient-service-0.0.1-SNAP
 
 EXPOSE 4000
 
+USER 10001:10001
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -33,4 +33,6 @@ COPY --from=builder /workspace/insurance-service/target/insurance-service-0.0.1-
 
 EXPOSE 4012
 
+USER 10001:10001
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -33,4 +33,6 @@ COPY --from=builder /workspace/inventory-pharmacy-service/target/inventory-pharm
 
 EXPOSE 4014
 
+USER 10001:10001
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

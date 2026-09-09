@@ -33,4 +33,6 @@ COPY --from=builder /workspace/audit-compliance-service/target/audit-compliance-
 
 EXPOSE 4015
 
+USER 10001:10001
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

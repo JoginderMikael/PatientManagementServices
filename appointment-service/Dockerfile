@@ -33,4 +33,6 @@ COPY --from=builder /workspace/appointment-service/target/appointment-service-0.
 
 EXPOSE 4010
 
+USER 10001:10001
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

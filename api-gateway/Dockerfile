@@ -33,4 +33,6 @@ COPY --from=builder /workspace/api-gateway/target/api-gateway-0.0.1-SNAPSHOT.jar
 
 EXPOSE 4004
 
+USER 10001:10001
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

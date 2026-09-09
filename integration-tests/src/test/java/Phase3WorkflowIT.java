@@ -33,6 +33,8 @@ class Phase3WorkflowIT {
     admin = token(UUID.randomUUID().toString(), "ADMIN");
     for (String module :
         List.of(
+            "patient-service",
+            "audit-compliance-service",
             "billing-service",
             "ehr-service",
             "insurance-service",
@@ -90,6 +92,8 @@ class Phase3WorkflowIT {
             "--jwt.issuer=patient-management-auth",
             "--jwt.audience=patient-management-api",
             "--app.audit.enabled=false",
+            "--app.outbox.publish-delay-ms=3600000",
+            "--app.privacy.base-url=http://localhost:" + PORTS.get("audit-compliance-service"),
             "--grpc.server.port=-1",
             "--spring.kafka.listener.auto-startup=false",
             "--app.billing.url=http://localhost:" + PORTS.get("billing-service"),
@@ -130,6 +134,42 @@ class Phase3WorkflowIT {
       }
     }
     DB.stop();
+  }
+
+  @Test
+  void phase4ConsentAndEmergencyAccessAcrossSignedHttpServices() throws Exception {
+    String subject = UUID.randomUUID().toString();
+    String clinician = token(subject, "CLINICIAN");
+    String officer = token(UUID.randomUUID().toString(), "PRIVACY_OFFICER");
+    String other = token(UUID.randomUUID().toString(), "CLINICIAN");
+    var patient = post("patient-service", "/patients", Map.of(
+        "name", "Synthetic FHIR Patient", "email", "phase4@example.test", "address", "Test address",
+        "dateOfBirth", "1990-01-01", "registeredDate", "2026-09-08"), admin, 200);
+    String id = patient.get("id").toString();
+    String path = "/fhir/Patient/" + id;
+    assertEquals(403, call("patient-service", "GET", path, null, clinician, Map.of()).statusCode());
+    var consent = post("audit-compliance-service", "/compliance/privacy/consents", Map.of(
+        "patientId", id, "subject", subject, "expiresAt", Instant.now().plusSeconds(1800).toString(),
+        "evidenceReference", "synthetic-consent"), officer, 200);
+    var permitted = call("patient-service", "GET", path, null, clinician, Map.of());
+    assertEquals(200, permitted.statusCode(), permitted.body());
+    assertEquals("Patient", JSON.readTree(permitted.body()).path("resourceType").asText());
+    assertEquals(403, call("patient-service", "GET", path, null, other, Map.of()).statusCode());
+    post("audit-compliance-service", "/compliance/privacy/grants/" + consent.get("id") + "/revoke", null, officer, 200);
+    assertEquals(403, call("patient-service", "GET", path, null, clinician, Map.of()).statusCode());
+    var emergency = post("audit-compliance-service", "/compliance/privacy/break-glass", Map.of(
+        "patientId", id, "expiresAt", Instant.now().plusSeconds(600).toString(), "evidenceReference", "synthetic-emergency"), clinician, 200);
+    Map<String,String> emergencyHeader = Map.of("X-Break-Glass-Id", emergency.get("id").toString());
+    assertEquals(403, call("patient-service", "GET", path, null, clinician, Map.of()).statusCode());
+    assertEquals(200, call("patient-service", "GET", path, null, clinician, emergencyHeader).statusCode());
+    assertEquals(403, call("patient-service", "GET", path, null, other, emergencyHeader).statusCode());
+    post("audit-compliance-service", "/compliance/privacy/break-glass/" + emergency.get("id") + "/review",
+        Map.of("evidenceReference", "synthetic-review"), officer, 200);
+    assertEquals(403, call("patient-service", "GET", path, null, clinician, emergencyHeader).statusCode());
+    var events = call("audit-compliance-service", "GET", "/audit/events?patientId=" + id, null, admin, Map.of());
+    assertEquals(200, events.statusCode());
+    assertTrue(events.body().contains("BREAK_GLASS_USE"));
+    assertTrue(events.body().contains("GRANT_REVOKED"));
   }
 
   @Test

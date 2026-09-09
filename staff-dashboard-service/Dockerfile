@@ -33,4 +33,6 @@ COPY --from=builder /workspace/staff-dashboard-service/target/staff-dashboard-se
 
 EXPOSE 4017
 
+USER 10001:10001
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -5,6 +5,7 @@ import git.jogindermikael.auditcomplianceservice.model.AuditEvent;
 import git.jogindermikael.auditcomplianceservice.repository.AuditEventRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.jdbc.core.JdbcTemplate;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
@@ -14,9 +15,9 @@ import java.util.UUID;
 
 @Service
 public class AuditComplianceService {
-    private static final String GENESIS_HASH="0".repeat(64);
     private final AuditEventRepository repository;
-    public AuditComplianceService(AuditEventRepository repository){this.repository=repository;}
+    private final JdbcTemplate db;
+    public AuditComplianceService(AuditEventRepository repository, JdbcTemplate db){this.repository=repository;this.db=db;}
 
     @Transactional
     public AuditEvent recordEvent(AuditEventRequest request){
@@ -25,12 +26,15 @@ public class AuditComplianceService {
 
     @Transactional
     public AuditEvent append(UUID sourceEventId,String actorId,String actorRole,String action,UUID patientId,String resourceType,UUID resourceId,String sourceService,String outcome,String reason,String endpoint,String requestId,String correlationId,Instant occurredAt){
+        String previous=db.queryForObject("SELECT event_hash FROM audit_chain_head WHERE id=1 FOR UPDATE",String.class);
         AuditEvent existing=repository.findBySourceEventId(sourceEventId).orElse(null);if(existing!=null)return existing;
-        String previous=repository.findTopByOrderByOccurredAtDesc().map(AuditEvent::getEventHash).orElse(GENESIS_HASH);
-        Instant timestamp=occurredAt==null?Instant.now():occurredAt;
-        String canonical=String.join("|",previous,sourceEventId.toString(),safe(actorId),safe(action),safe(patientId),safe(resourceType),safe(resourceId),safe(sourceService),safe(outcome),timestamp.toString());
+        Instant timestamp=(occurredAt==null?Instant.now():occurredAt).truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        String canonical=java.util.stream.Stream.of(previous,sourceEventId,safe(actorId),safe(actorRole),safe(action),patientId,safe(resourceType),resourceId,safe(sourceService),safe(outcome),reason,endpoint,requestId,correlationId,timestamp)
+                .map(value -> value == null ? "-1:" : safe(value).length()+":"+safe(value)).collect(java.util.stream.Collectors.joining());
         String hash=sha256(canonical);
-        return repository.save(new AuditEvent(UUID.randomUUID(),sourceEventId,safe(actorId),safe(actorRole),safe(action),patientId,safe(resourceType),resourceId,safe(sourceService),safe(outcome),reason,endpoint,requestId,correlationId,timestamp,previous,hash));
+        AuditEvent saved=repository.saveAndFlush(new AuditEvent(UUID.randomUUID(),sourceEventId,safe(actorId),safe(actorRole),safe(action),patientId,safe(resourceType),resourceId,safe(sourceService),safe(outcome),reason,endpoint,requestId,correlationId,timestamp,previous,hash));
+        db.update("UPDATE audit_chain_head SET event_hash=? WHERE id=1",hash);
+        return saved;
     }
 
     @Transactional(readOnly=true)
