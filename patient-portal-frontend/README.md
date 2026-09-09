@@ -17,7 +17,7 @@ or real patient information in local development.
 
 ## Verification
 
-Run the Phase 1 gates before handing off changes:
+Run the Phase 1 and Phase 2 gates before handing off changes:
 
 ```text
 npm run typecheck
@@ -27,7 +27,7 @@ npm run build
 
 Tests use Mock Service Worker and synthetic `.example.test` identities. They cover
 login, session invalidation, role-filtered routes, cache clearing, gateway response
-handling and basic accessibility checks.
+handling, the minimal patient portal workflows and basic accessibility checks.
 
 ## Structure
 

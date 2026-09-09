@@ -1,7 +1,7 @@
 PATIENT MANAGEMENT FRONTEND - EXPECTED ARCHITECTURE
 ===================================================
 
-Status: Phase 1 complete; Phases 2-5 planned
+Status: Phases 1-2 complete; Phases 3-5 planned
 Last reviewed and verified: 2026-09-09
 Applies to: patient-portal-frontend
 
@@ -22,9 +22,10 @@ The current code is a Create React App/React 19/strict TypeScript application wi
 the Phase 1 foundation implemented. It has provider and route composition, shared
 patient/staff shells, centralized role-aware navigation, an in-memory authenticated
 session, a typed gateway boundary, accessible shared primitives and synthetic test
-infrastructure. Patient and staff feature routes intentionally show foundation
-placeholders until their workflows are implemented in Phases 2-4. The architecture
-below records both the verified current foundation and the planned end state.
+infrastructure. The minimal patient portal is implemented against the verified
+patient-portal gateway contract; staff routes intentionally retain foundation
+placeholders until their workflows are implemented in Phases 3-4. The architecture
+below records both the verified current implementation and the planned end state.
 
 2. PRODUCT SURFACES
 -------------------
@@ -545,6 +546,8 @@ Verified implementation:
 
 PHASE 2 - MINIMAL PATIENT PORTAL
 
+Status: COMPLETE (verified 2026-09-09)
+
 Scope:
 
   1. Implement Overview from `/api/portal/patients/{patientId}/overview`.
@@ -562,6 +565,45 @@ Exit gate:
     empty, stale and 503 states are distinguishable and recoverable where allowed.
   - Patient pages work from 320px upward and expose no sensitive data to URLs,
     persistent storage, logs or analytics.
+
+Verified implementation:
+
+  - `/patient/overview` loads the authenticated portal overview with account state
+    and appointment, record-request and payment summaries. Initial loading, empty,
+    background-refresh, denied and unavailable states use shared feedback primitives.
+  - `/patient/appointments` lists requests, validates and submits specialty/reason,
+    and confirmation-gates cancellation only while a request is `REQUESTED`. A 409
+    triggers authoritative overview invalidation instead of optimistic completion.
+  - `/patient/records` validates a narrowly typed record request plus an explicit
+    privacy acknowledgement. Fulfilled releases are downloaded as `records.txt`
+    Blob files, never inserted into the DOM; 409-not-ready remains distinguishable.
+  - `/patient/billing` displays decimal-formatted payment activity and validates
+    invoice UUID and positive two-decimal amount input. One cryptographic
+    Idempotency-Key remains tied to an unchanged payment attempt and is replaced
+    after success or a materially changed payload.
+  - `/patient/access` presents session and portal-account identity. Proxy create and
+    revoke controls are deliberately withheld because the current gateway cannot
+    list verified proxy identities or existing grants; presenting blind subject-ID
+    entry would not meet the safe identity-selection requirement.
+  - The current auth contract may provide `patient_id`; for PATIENT tokens without
+    that claim, the UUID subject is used as the opaque development patient context
+    and the portal service remains authoritative through its identity binding. A
+    development-only migration binds the two synthetic PATIENT accounts. ADMIN
+    sessions require an explicit patient_id claim before entering patient context.
+  - Phase 2 has synthetic MSW coverage for login-to-overview data, empty activity,
+    appointment request/cancel, record request/file download, payment retry with a
+    stable key, owner denial, 409-not-ready and bounded 503 recovery. All five portal
+    routes pass basic automated accessibility checks at 320px. The complete frontend
+    gate passes strict typecheck, 46 tests across 4 suites and the production build.
+
+Known contract boundaries:
+
+  - The portal overview exposes payment submissions but no PATIENT-readable invoice
+    list. Until that endpoint exists, the payment form accepts only the opaque invoice
+    UUID issued on a statement and clearly identifies this limitation.
+  - Proxy management remains presentation-only until verified identity discovery and
+    grant-listing response contracts are available. This is an intentional safety
+    boundary, not an unfinished visible control.
 
 PHASE 3 - CORE STAFF AND CLINICAL WORKFLOWS
 

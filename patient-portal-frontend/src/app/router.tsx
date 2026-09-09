@@ -6,36 +6,16 @@ import { ForbiddenPage } from "../features/foundation/pages/ForbiddenPage";
 import { LoginPage } from "../features/foundation/pages/LoginPage";
 import { NotFoundPage } from "../features/foundation/pages/NotFoundPage";
 import { WorkspacePage } from "../features/foundation/pages/WorkspacePage";
+import { AccessPage } from "../features/patientPortal/pages/AccessPage";
+import { AppointmentsPage } from "../features/patientPortal/pages/AppointmentsPage";
+import { BillingPage } from "../features/patientPortal/pages/BillingPage";
+import { OverviewPage } from "../features/patientPortal/pages/OverviewPage";
+import { RecordsPage } from "../features/patientPortal/pages/RecordsPage";
 import {
-  patientNavigation,
   patientRoles,
   staffNavigation,
   staffRoles,
 } from "./routePolicy";
-
-const patientPages = [
-  [
-    "overview",
-    "Overview",
-    "Appointments, record requests and payment activity.",
-  ],
-  ["appointments", "Appointments", "Request and review appointments."],
-  [
-    "records",
-    "Health records",
-    "Request and securely download fulfilled records.",
-  ],
-  [
-    "billing",
-    "Bills and payments",
-    "Review invoices and submit payment intents.",
-  ],
-  [
-    "access",
-    "Profile and proxy access",
-    "Review profile and narrowly scoped proxy grants.",
-  ],
-] as const;
 
 const staffPages = [
   ["work-queue", "Work queue", "Review assigned and permitted queue work."],
@@ -81,26 +61,11 @@ export function AppRoutes() {
         <Route element={<RequireRole allow={patientRoles} />}>
           <Route path="/patient" element={<AppShell surface="patient" />}>
             <Route index element={<Navigate to="overview" replace />} />
-            {patientPages.map(([path, title, description]) => {
-              const policy = patientNavigation.find(
-                (item) => item.to === `/patient/${path}`,
-              )!;
-              return (
-                <Route
-                  key={path}
-                  path={path}
-                  element={
-                    <RequireRole allow={policy.roles}>
-                      <WorkspacePage
-                        eyebrow="Patient portal"
-                        title={title}
-                        description={description}
-                      />
-                    </RequireRole>
-                  }
-                />
-              );
-            })}
+            <Route path="overview" element={<OverviewPage />} />
+            <Route path="appointments" element={<AppointmentsPage />} />
+            <Route path="records" element={<RecordsPage />} />
+            <Route path="billing" element={<BillingPage />} />
+            <Route path="access" element={<AccessPage />} />
           </Route>
         </Route>
         <Route element={<RequireRole allow={staffRoles} />}>

@@ -38,6 +38,7 @@ describe('application foundation', () => {
     render(<App />);
     signIn('patient@example.test');
     expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Account summary' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Health records' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Work queue' })).not.toBeInTheDocument();
   });
@@ -134,6 +135,7 @@ describe('application foundation', () => {
     writeSession(createSyntheticSession(role));
     const { container } = renderWithProviders(<AppRoutes />, { route: path });
     await screen.findByRole('heading', { name: path.startsWith('/staff') ? 'Work queue' : 'Overview' });
+    if (path.startsWith('/patient')) await screen.findByRole('heading', { name: 'Account summary' });
     if (width === 320) {
       const toggle = screen.getByRole('button', { name: /toggle primary navigation/i });
       toggle.focus();

@@ -9,6 +9,7 @@ export interface TokenClaims {
   subject: string;
   email: string;
   role: UserRole;
+  patientId?: string;
   expiresAt: number;
 }
 
@@ -39,7 +40,13 @@ export function parseTokenClaims(token: string): TokenClaims {
       throw new InvalidTokenError();
     }
     if (claims.exp * 1000 <= Date.now()) throw new InvalidTokenError();
-    return { subject: claims.sub, email: claims.email, role: role as UserRole, expiresAt: claims.exp * 1000 };
+    return {
+      subject: claims.sub,
+      email: claims.email,
+      role: role as UserRole,
+      patientId: typeof claims.patient_id === 'string' ? claims.patient_id : undefined,
+      expiresAt: claims.exp * 1000,
+    };
   } catch (error) {
     if (error instanceof InvalidTokenError) throw error;
     throw new InvalidTokenError();
