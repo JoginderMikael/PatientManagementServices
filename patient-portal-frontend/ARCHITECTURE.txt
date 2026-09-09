@@ -1,8 +1,8 @@
 PATIENT MANAGEMENT FRONTEND - EXPECTED ARCHITECTURE
 ===================================================
 
-Status: target architecture and implementation guide
-Last reviewed: 2026-09-09
+Status: Phase 1 complete; Phases 2-5 planned
+Last reviewed and verified: 2026-09-09
 Applies to: patient-portal-frontend
 
 1. PURPOSE
@@ -18,8 +18,13 @@ The frontend is a role-aware client for the API gateway at http://localhost:4004
 It must never connect directly to a service database or rely on browser-side role
 checks as an authorization boundary. Backend authorization remains authoritative.
 
-The current code is a Create React App/React 19/TypeScript application with one
-hard-coded patient dashboard. The architecture below is the desired end state.
+The current code is a Create React App/React 19/strict TypeScript application with
+the Phase 1 foundation implemented. It has provider and route composition, shared
+patient/staff shells, centralized role-aware navigation, an in-memory authenticated
+session, a typed gateway boundary, accessible shared primitives and synthetic test
+infrastructure. Patient and staff feature routes intentionally show foundation
+placeholders until their workflows are implemented in Phases 2-4. The architecture
+below records both the verified current foundation and the planned end state.
 
 2. PRODUCT SURFACES
 -------------------
@@ -225,13 +230,15 @@ filters and selection; authentication owns only session identity and credentials
 6. RECOMMENDED CLIENT STACK
 ---------------------------
 
-Retain React and TypeScript. Add libraries only when implementation begins:
+Retain React and TypeScript. The Phase 1 implementation uses:
 
   - React Router for nested, lazy, role-aware routing.
   - TanStack Query for server-state caching, invalidation and mutation state.
   - React Hook Form plus Zod for accessible forms and client validation.
-  - openapi-typescript or Orval for API types generated from the live OpenAPI JSON.
   - Mock Service Worker for deterministic UI and integration tests.
+
+OpenAPI generation with openapi-typescript or Orval remains planned for the feature
+phases, when the deployed gateway contracts are stable enough to generate and diff.
 
 Prefer CSS modules or a small token-based stylesheet over a large design framework.
 If a component library is selected, document its accessibility status, bundle cost
@@ -489,6 +496,8 @@ Exit gate:
 
 PHASE 1 - APPLICATION FOUNDATION
 
+Status: COMPLETE (verified 2026-09-09)
+
 Scope:
 
   1. Replace the hard-coded dashboard with AppProviders, route composition and the
@@ -510,6 +519,29 @@ Exit gate:
     automated accessibility checks at patient mobile and staff desktop widths.
   - Typecheck, unit tests and production build pass without production credentials
     or hard-coded patient records.
+
+Verified implementation:
+
+  - `AppProviders`, BrowserRouter route composition, shared patient/staff `AppShell`
+    layouts and centralized `routePolicy` replace the original hard-coded dashboard.
+    Every planned top-level patient and staff destination has a protected foundation
+    route; workflow data remains deliberately deferred to the appropriate phase.
+  - Semantic CSS tokens and shared layout, feedback, form, data and safety primitives
+    are implemented. The shells include landmarks, a skip link, visible focus,
+    responsive navigation and synthetic-environment/privacy indicators.
+  - The typed gateway client adds bearer, correlation and idempotency headers,
+    decodes JSON/text/204 responses, normalizes `ApiError` details and exposes bounded
+    retry behavior only for transient reads. Mutations do not retry automatically.
+  - Login uses React Hook Form and Zod validation. JWT claims are defensively decoded
+    for presentation, restored credentials are validated, and route guards enforce
+    authenticated and role-filtered presentation. Credentials remain in memory;
+    logout and 401 clear the session and query cache, while 403 preserves both.
+  - Synthetic factories, MSW authentication/error handlers and provider-aware test
+    rendering are active. CI installs from the lockfile and runs typecheck, unit and
+    accessibility tests, followed by the production build.
+  - Exit-gate verification passed on 2026-09-09: strict typecheck, 35 automated tests
+    across 3 suites, patient-mobile/staff-desktop axe checks, keyboard checks for
+    responsive navigation, tabs and dialogs, and an optimized production build.
 
 PHASE 2 - MINIMAL PATIENT PORTAL
 

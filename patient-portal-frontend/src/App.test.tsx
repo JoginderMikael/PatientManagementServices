@@ -60,6 +60,14 @@ describe('application foundation', () => {
     expect(screen.getByLabelText(/email address/i)).toHaveAttribute('aria-invalid', 'true');
   });
 
+  test.each([320, 1440])('login form has no basic accessibility violations at %ipx', async (width) => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+    setBrowserRoute('/login');
+    const { container } = render(<App />);
+    await screen.findByRole('heading', { name: 'Account sign in' });
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
   test('direct protected entry redirects an anonymous user to login', async () => {
     setBrowserRoute('/staff/work-queue');
     render(<App />);
@@ -128,7 +136,8 @@ describe('application foundation', () => {
     await screen.findByRole('heading', { name: path.startsWith('/staff') ? 'Work queue' : 'Overview' });
     if (width === 320) {
       const toggle = screen.getByRole('button', { name: /toggle primary navigation/i });
-      userEvent.click(toggle);
+      toggle.focus();
+      userEvent.keyboard('{Enter}');
       expect(toggle).toHaveAttribute('aria-expanded', 'true');
     }
     expect(await axe(container)).toHaveNoViolations();
