@@ -1,0 +1,494 @@
+PATIENT MANAGEMENT FRONTEND - EXPECTED ARCHITECTURE
+===================================================
+
+Status: target architecture and implementation guide
+Last reviewed: 2026-09-09
+Applies to: patient-portal-frontend
+
+1. PURPOSE
+----------
+
+This directory should become a small, credible hospital and patient-management web
+application. It must feel like an operational clinical product, not a marketing
+site or a collection of demo cards. The first release should remain intentionally
+minimal: support the highest-value workflows, make safety-critical state obvious,
+and avoid presenting backend capabilities that are not actually implemented.
+
+The frontend is a role-aware client for the API gateway at http://localhost:4004.
+It must never connect directly to a service database or rely on browser-side role
+checks as an authorization boundary. Backend authorization remains authoritative.
+
+The current code is a Create React App/React 19/TypeScript application with one
+hard-coded patient dashboard. The architecture below is the desired end state.
+
+2. PRODUCT SURFACES
+-------------------
+
+Implement one deployable web application with two shells sharing design tokens,
+API infrastructure, authentication, error handling and accessibility primitives.
+
+A. Patient portal shell
+
+Primary users: patients and authorized proxies.
+
+Minimum navigation:
+
+  Overview
+  Appointments
+  Health records
+  Bills and payments
+  Profile and proxy access
+
+Minimum patient workflows:
+
+  - Sign in and sign out.
+  - View an overview of appointment, record-request and payment activity.
+  - Request an appointment and cancel an unresolved appointment request.
+  - Request a copy of records and download a fulfilled text release.
+  - Submit a payment intent with a unique Idempotency-Key.
+  - View proxy grants and create/revoke a narrowly scoped proxy grant when the
+    backend exposes enough data for a safe UI.
+  - Show privacy-safe empty, loading, stale, denied and failure states.
+
+B. Staff operations shell
+
+Primary users: administrators, clinicians, nurses, registration staff, billing
+staff, pharmacists, laboratory staff, privacy officers, auditors and analysts.
+
+Minimum navigation is filtered by the authenticated role:
+
+  Work queue              clinician/nurse/operational staff
+  Patients                admin/clinician/registration staff
+  Schedule                admin/clinician/registration staff
+  Clinical chart          admin/clinician; selected safety actions for nurses
+  Billing                 admin/billing staff
+  Insurance               admin/billing staff
+  Pharmacy and inventory  admin/pharmacist
+  Notifications           permitted operational roles
+  Compliance and audit    privacy officer/admin/auditor as applicable
+  Reports                  admin/analyst
+
+The initial staff release does not need every backend endpoint on day one. It does
+need coherent patient search, patient context, task queues, appointment handling,
+chart viewing, and clear links to the permitted specialized workflows.
+
+3. INFORMATION ARCHITECTURE
+---------------------------
+
+Use URLs as durable application state. A user must be able to refresh a permitted
+page without losing context. Suggested routes:
+
+  /login
+  /forbidden
+  /patient/overview
+  /patient/appointments
+  /patient/records
+  /patient/billing
+  /patient/access
+
+  /staff/work-queue
+  /staff/patients
+  /staff/patients/:patientId/summary
+  /staff/patients/:patientId/demographics
+  /staff/patients/:patientId/encounters
+  /staff/patients/:patientId/medications
+  /staff/patients/:patientId/labs
+  /staff/patients/:patientId/billing
+  /staff/schedule
+  /staff/pharmacy
+  /staff/inventory
+  /staff/compliance
+  /staff/audit
+  /staff/reports
+
+Patient context is a first-class state containing patient ID, MRN, name, date of
+birth, lifecycle status and access state. Display a persistent patient banner on
+every staff patient page. Never infer patient context from the last record viewed.
+Changing patient context must clear patient-specific cached data before rendering
+the next patient.
+
+4. VISUAL AND INTERACTION DIRECTION
+-----------------------------------
+
+The application should resemble a real, restrained hospital system:
+
+  - Light neutral surfaces, high-contrast text and one calm clinical accent color.
+  - Dense but readable tables for queues, appointments and records.
+  - A left navigation rail on desktop and a compact drawer on small screens.
+  - A top bar containing facility/product name, environment label, user identity,
+    current role, notifications entry point and sign-out action.
+  - A patient banner below the top bar whenever staff is in patient context.
+  - Status chips that combine words, color and icons; never communicate only with
+    red/green color.
+  - Forms with labels above controls, explicit required markers, inline validation,
+    submission summaries and a visible cancel path.
+  - Confirmation dialogs for cancellation, merge/unmerge, status changes,
+    dispensing, note signing, record release, legal holds and other consequential
+    mutations. The dialog must name the affected patient/resource.
+  - No decorative gradients, oversized hero areas or excessive animations.
+  - Skeletons for initial reads, unobtrusive progress for background refreshes,
+    and explicit retry actions for recoverable failures.
+
+Recommended desktop layout:
+
+  +--------------------+-----------------------------------------------+
+  | Product / facility | Environment | User / role | Sign out          |
+  +--------------------+-----------------------------------------------+
+  | Navigation         | Optional patient context banner               |
+  |                    +-----------------------------------------------+
+  |                    | Page title, actions and filters               |
+  |                    +-----------------------------------------------+
+  |                    | Alerts / validation summary                   |
+  |                    +-----------------------------------------------+
+  |                    | Main workflow content                         |
+  +--------------------+-----------------------------------------------+
+
+5. SOURCE ORGANIZATION
+----------------------
+
+Keep domain behavior close to its feature and cross-cutting infrastructure small.
+Use this target structure:
+
+  src/
+    app/
+      App.tsx                 route composition only
+      AppProviders.tsx        query, auth, error and theme providers
+      router.tsx              route tree and lazy feature boundaries
+      routePolicy.ts          route-to-role presentation rules
+    api/
+      client.ts               fetch wrapper, headers and response decoding
+      errors.ts               typed ApiError normalization
+      generated/              generated OpenAPI types/client; never hand-edit
+      queryKeys.ts            stable cache-key factories
+    auth/
+      AuthProvider.tsx
+      session.ts              in-memory/session restoration policy
+      tokenClaims.ts          defensive JWT claim parsing for presentation only
+      RequireAuth.tsx
+      RequireRole.tsx
+    components/
+      layout/                 AppShell, Nav, TopBar, PatientBanner
+      feedback/               Alert, ErrorState, EmptyState, Skeleton
+      forms/                  field wrappers and validation summary
+      data/                   Table, Pagination, StatusBadge, DefinitionList
+      safety/                 ConfirmAction, BreakGlassDialog
+    features/
+      patientOverview/
+      patients/
+      appointments/
+      ehr/
+      staffTasks/
+      billing/
+      insurance/
+      pharmacy/
+      notifications/
+      compliance/
+      audit/
+      analytics/
+    hooks/
+    styles/
+      tokens.css
+      global.css
+    test/
+      handlers/               request mocks
+      factories/              typed synthetic data only
+      render.tsx              provider-aware test renderer
+    types/
+    index.tsx
+
+Each feature should normally contain:
+
+  api.ts                     query/mutation functions
+  types.ts                   UI-only derived types, if needed
+  routes.tsx                 feature route boundary
+  components/                feature components
+  pages/                     route-level screens
+  validation.ts              form schema
+  *.test.tsx                 behavior tests beside the code
+
+Do not create global stores for server records. Server state belongs in the query
+cache; local component state owns transient UI state; URL parameters own shareable
+filters and selection; authentication owns only session identity and credentials.
+
+6. RECOMMENDED CLIENT STACK
+---------------------------
+
+Retain React and TypeScript. Add libraries only when implementation begins:
+
+  - React Router for nested, lazy, role-aware routing.
+  - TanStack Query for server-state caching, invalidation and mutation state.
+  - React Hook Form plus Zod for accessible forms and client validation.
+  - openapi-typescript or Orval for API types generated from the live OpenAPI JSON.
+  - Mock Service Worker for deterministic UI and integration tests.
+
+Prefer CSS modules or a small token-based stylesheet over a large design framework.
+If a component library is selected, document its accessibility status, bundle cost
+and theming strategy before adoption. Do not mix multiple component systems.
+
+TypeScript should run with strict mode when migration allows it. Avoid `any`; use
+`unknown` at external boundaries and narrow it. Do not duplicate Java DTO shapes by
+hand once reliable OpenAPI generation is available.
+
+7. API CLIENT BOUNDARY
+----------------------
+
+All browser calls go through one API client configured with:
+
+  REACT_APP_API_BASE_URL=http://localhost:4004
+
+The client is responsible for:
+
+  - Prefixing gateway paths.
+  - Sending Accept: application/json, except FHIR reads which use
+    application/fhir+json.
+  - Sending Content-Type: application/json only when a JSON body exists.
+  - Attaching Authorization: Bearer <token>.
+  - Generating/propagating a correlation ID when supported.
+  - Sending Idempotency-Key for patient creation, billing-account creation and
+    portal payments. Keep the same key on a deliberate retry of the same action.
+  - Parsing JSON, text downloads and empty 204 responses correctly.
+  - Mapping 400, 401, 403, 404, 409, 410, 422/validation and 503 into a typed error.
+  - Never logging authorization headers, request bodies containing PHI, downloaded
+    records or raw backend errors to analytics/console in production.
+
+Suggested error type:
+
+  ApiError {
+    status: number;
+    code?: string;
+    message: string;
+    fieldErrors?: Record<string, string[]>;
+    requestId?: string;
+    retryable: boolean;
+  }
+
+Queries should use patient-bound keys such as ['patients', patientId, 'labs'].
+Mutations invalidate the narrowest affected keys. Sensitive patient data should
+default to a short stale time and must be cleared on logout, identity change,
+patient-context change, 401, or detected revocation. Do not persist PHI query data
+to localStorage, IndexedDB, service-worker caches or Redux persistence.
+
+8. AUTHENTICATION AND AUTHORIZATION
+-----------------------------------
+
+Login uses POST /auth/login. Treat the JWT as a credential, not user profile data.
+The frontend may decode claims to choose navigation, but every protected operation
+must still tolerate a backend 403.
+
+Preferred credential design for production is a secure, HttpOnly, SameSite cookie
+issued by a backend-for-frontend. The current bearer-token API may require holding
+the access token in memory. If session restoration is required before a BFF exists,
+sessionStorage is less persistent than localStorage but remains exposed to XSS;
+record and approve that tradeoff. Never place tokens in URLs.
+
+Required session behavior:
+
+  - Validate or reject a restored session before showing protected content.
+  - On 401, clear all cached data and return to login with a neutral message.
+  - On 403, keep the session but show an access-denied state.
+  - Sign-out clears credentials, query caches, patient context and history state.
+  - Inactivity timeout and absolute session lifetime must come from approved policy.
+  - Do not silently perform break-glass access. Require reason/evidence, show expiry,
+    display a persistent emergency-access banner and expose review consequences.
+
+Role-to-menu mapping is presentation logic only. Centralize it in routePolicy.ts so
+buttons and routes use the same policy and tests can assert every role matrix.
+
+9. DOMAIN FEATURE DESIGN
+------------------------
+
+Patient overview
+
+  Use /api/portal/patients/{patientId}/overview for patient-facing activity. For
+  staff, compose a summary from permitted patient, appointment, EHR, billing and
+  alert queries. Avoid large fan-out on every render; load the identity banner first
+  and lazy-load tabs. Highlight allergies, active safety alerts and lifecycle status.
+
+Patient registry
+
+  Provide a compact searchable list, duplicate-candidate workflow, registration
+  form, demographics edit and lifecycle actions. Merge screens must show source and
+  survivor side by side and require a typed confirmation or equivalent deliberate
+  action. Never use DELETE as a casual UI action; explain its actual backend effect.
+
+Appointments
+
+  Offer list/day views before building a complex calendar. Display timezone near
+  all times. Booking validates future time and 5-480 minute duration. Cancellation
+  shows the reason in the final review. Telemedicine join URLs are untrusted links:
+  display the provider and require an explicit user click.
+
+Clinical chart
+
+  Separate encounters, history/allergies, diagnoses, prescriptions, labs, notes and
+  vaccinations into predictable tabs. Signed notes are visually immutable. Show
+  safety conflicts next to medication actions and never reduce a 409 safety response
+  to a generic toast. FHIR Patient read is not a substitute for the internal chart.
+
+Tasks
+
+  Queue filters belong in the URL. Urgent/overdue work appears first. Claim, handoff,
+  comment and complete actions update the visible history. Optimistic updates should
+  be avoided for ownership/status changes because conflicts carry clinical meaning.
+
+Billing and insurance
+
+  Format money using the record currency; never use floating-point arithmetic for
+  totals. Display invoice amount, paid amount and outstanding amount. Preserve
+  idempotency references. Claims should expose submitted/adjudicated/paid state and
+  explain conflicts without implying payer acceptance when none occurred.
+
+Pharmacy and inventory
+
+  Separate medication catalog, batches, movements, prescriptions awaiting review,
+  dispensing and billing. Dispensing requires a recorded safety review and available
+  unexpired stock. Consequential pharmacy actions should refetch rather than assume
+  success from local state.
+
+Compliance and audit
+
+  Keep these screens separate. Compliance cases are workflows with evidence
+  references and legal-hold state. Audit events are read-only evidence after append.
+  Evidence references are identifiers, not places to paste patient details or URLs.
+
+10. STATE, FORMS AND CONCURRENCY
+--------------------------------
+
+  - Read state: TanStack Query (or equivalent), scoped by identity and patient.
+  - Form state: React Hook Form; reset only after confirmed success.
+  - Navigation state: URL search/path parameters.
+  - Modal state: local state unless it must survive navigation.
+  - Session state: AuthProvider only.
+
+Do not retry non-idempotent mutations automatically. GET requests may retry a small
+number of times for network errors/503 with bounded exponential backoff. Do not
+retry 400, 401, 403, 404, 409 or 410 automatically. A 409 often represents stale
+workflow state, duplicate references, safety blocks or concurrency; refetch and ask
+the user to review current state.
+
+Prevent double submission at the UI, but rely on backend idempotency/locking for
+correctness. Keep generated idempotency keys tied to the form attempt until success,
+explicit reset or materially changed payload.
+
+11. SECURITY AND PRIVACY REQUIREMENTS
+-------------------------------------
+
+  - Treat names, addresses, dates of birth, MRNs, diagnoses, medications, labs,
+    appointments, invoices, proxy relationships and record downloads as sensitive.
+  - No PHI in URLs except opaque identifiers already required by API paths.
+  - No PHI in analytics, browser logs, error-report breadcrumbs or DOM attributes.
+  - Disable client/service-worker caching for record downloads and FHIR responses.
+  - Never render backend-provided HTML. Render all text as text; sanitize any future
+    rich-text format with an approved policy.
+  - Use rel="noopener noreferrer" for external consultation links.
+  - Apply a restrictive Content Security Policy at hosting/gateway level.
+  - Protect against clickjacking, MIME sniffing and referrer leakage with headers.
+  - Keep third-party scripts off authenticated clinical pages unless approved.
+  - Redact sensitive fields in test snapshots and use synthetic fixtures only.
+  - Frontend checks never compensate for missing platform-wide patient/facility
+    authorization. Do not expose legacy APIs externally until backend gates close.
+
+12. ACCESSIBILITY AND RESPONSIVENESS
+------------------------------------
+
+Target WCAG 2.2 AA:
+
+  - Full keyboard navigation and visible focus.
+  - A skip-to-content link and semantic landmarks.
+  - Correct heading hierarchy and associated form labels.
+  - Tables with captions, headers and responsive alternatives.
+  - Live regions for asynchronous status without excessive announcements.
+  - Error summaries linked to invalid fields.
+  - Minimum 4.5:1 text contrast and 3:1 component/focus contrast.
+  - Touch targets suitable for tablets used during rounds.
+  - Respect prefers-reduced-motion.
+  - Dates, time zones, currency and language are explicit and locale-aware.
+
+Desktop is primary for staff; tablet must support rounding and pharmacy workflows;
+patient pages must work from 320px upward. Dense clinical tables may scroll within
+clearly labelled regions rather than crushing columns.
+
+13. TESTING STRATEGY
+--------------------
+
+Unit/component tests:
+
+  - Field validation and payload transformation.
+  - Loading, empty, denied, conflict, unavailable and success states.
+  - Role-filtered navigation and route guards.
+  - Patient-context cache isolation.
+  - Currency/date formatting and status labels.
+
+Integration tests with Mock Service Worker:
+
+  - Login to overview.
+  - Register/search/select a patient.
+  - Request/cancel an appointment.
+  - Create an encounter and sign a note.
+  - Safety conflict blocks prescription/dispensing UI.
+  - Submit an idempotent payment and handle a replay.
+  - Place/release a legal hold through valid transitions.
+  - 401 clears the session; 403 preserves it; 409 refetches current state.
+
+End-to-end tests against a synthetic deployment:
+
+  - One happy path per role family.
+  - Cross-role and cross-patient denial.
+  - Break-glass request/use/review behavior.
+  - Download headers and no-store behavior.
+  - Keyboard-only smoke test and automated accessibility checks.
+
+14. OBSERVABILITY
+-----------------
+
+Record technical telemetry only: route template, operation name, duration, status
+class, retry count, application version and server request/correlation ID. Never
+record raw paths containing IDs, request/response bodies, form values or tokens.
+Provide a user-visible request ID on unexpected errors so support can correlate it
+with server logs. Use an environment badge so synthetic/staging sessions cannot be
+mistaken for production.
+
+15. DELIVERY PHASES
+-------------------
+
+Foundation
+
+  1. Replace the hard-coded dashboard with AppProviders, router and app shell.
+  2. Add design tokens, shared feedback states and accessible form primitives.
+  3. Add typed API client, authentication and error normalization.
+  4. Establish MSW fixtures and CI checks for typecheck/test/build.
+
+Minimal patient portal
+
+  1. Overview.
+  2. Appointment requests/cancellation.
+  3. Record requests/download.
+  4. Payment submission and activity.
+
+Minimal staff application
+
+  1. Work queue and task lifecycle.
+  2. Patient registry and patient context.
+  3. Appointment list/booking.
+  4. Clinical chart read views plus carefully gated write actions.
+
+Specialized operations
+
+  Billing/insurance, pharmacy/inventory, notification, compliance/audit and
+  analytics screens follow after the minimal workflows are usable and tested.
+
+16. DEFINITION OF DONE FOR A FRONTEND FEATURE
+---------------------------------------------
+
+A feature is done only when:
+
+  - It uses the gateway API and generated/verified contract types.
+  - Its permitted roles and patient-context behavior are documented and tested.
+  - Loading, empty, success, validation, 401, 403, 404, 409 and 503 behavior is
+    handled where relevant.
+  - Mutations have deliberate confirmation and idempotency behavior where required.
+  - No PHI/token leaks occur through logs, storage, URLs or telemetry.
+  - Keyboard and screen-reader basics pass; responsive layouts are verified.
+  - Tests use synthetic data and cover the primary user outcome.
+  - The API.txt contract and this architecture remain accurate after the change.
+

@@ -1,0 +1,890 @@
+PATIENT MANAGEMENT FRONTEND - API CONTRACT CATALOG
+==================================================
+
+Status: source-derived frontend reference
+Last reviewed: 2026-09-09
+Gateway base URL: http://localhost:4004
+Endpoint count: 130 application operations across 12 backend services
+
+IMPORTANT
+---------
+
+This catalog is derived from the current Spring controllers, request DTOs, response
+models, service command records and gateway routes. It describes what the frontend
+can call today. The live OpenAPI documents exposed through the gateway remain the
+machine-readable authority and should be used to generate TypeScript types.
+
+Several newer workflow endpoints return Map<String,Object> or void. For those, this
+file records the database-shaped JSON observed in the service implementation. Those
+shapes should be promoted to explicit backend DTOs before the frontend treats them
+as a long-term stable contract.
+
+1. TRANSPORT CONVENTIONS
+------------------------
+
+Default request headers:
+
+  Accept: application/json
+  Authorization: Bearer <JWT>              all protected endpoints
+  Content-Type: application/json           requests with JSON bodies
+
+Special headers:
+
+  Idempotency-Key: <unique stable value>   patient creation, billing-account
+                                            creation, and portal payments
+  X-Break-Glass-Id: <UUID>                 optional FHIR Patient emergency grant
+  Accept: application/fhir+json            FHIR endpoints
+
+Formats:
+
+  UUID       canonical UUID string
+  date       YYYY-MM-DD
+  time       HH:mm or HH:mm:ss
+  datetime   ISO-8601; send an offset/UTC for Instant values
+  decimal    JSON number; frontend must retain decimal semantics for currency
+
+Common outcomes:
+
+  200 OK           successful read/update or controller-default void response
+  201 Created      successful creation where explicitly returned
+  202 Accepted     queued notification or imported lab result
+  204 No Content   patient deletion; some void endpoints currently return 200 empty
+  400 Bad Request  malformed UUID/enum/date, failed bean validation, invalid state
+  401 Unauthorized missing, malformed, expired or invalid bearer token
+  403 Forbidden    authenticated identity lacks role/context/consent
+  404 Not Found    resource does not exist
+  409 Conflict     stale workflow, reused reference, safety/inventory/state conflict
+  410 Gone         inactive FHIR Patient
+  503 Unavailable  privacy decision service failed or returned malformed data
+
+Spring error bodies are not yet standardized. Treat error payloads as `unknown`,
+show a safe user message, and retain a request ID if supplied. FHIR errors use the
+OperationOutcome shape defined below.
+
+Local Swagger sources:
+
+  /auth-v3-api-docs
+  /patient-v3-api-docs
+  /billing-v3-api-docs
+  /analytics-v3-api-docs
+  /appointment-v3-api-docs
+  /ehr-v3-api-docs
+  /insurance-v3-api-docs
+  /notification-v3-api-docs
+  /inventory-pharmacy-v3-api-docs
+  /audit-compliance-v3-api-docs
+  /patient-portal-v3-api-docs
+  /staff-dashboard-v3-api-docs
+
+2. REQUEST AND RESPONSE SHAPES
+------------------------------
+
+Notation: `?` means optional/nullable. `[]` means an array. Validation constraints
+shown here are enforced by the current backend where annotations/service checks
+exist. Examples are structural and must use synthetic values in development.
+
+AUTHENTICATION
+
+LoginRequest
+  { email: string(email, required), password: string(required, min 8) }
+
+LoginResponse
+  { token: string }
+
+PATIENT REGISTRY
+
+PatientRequest
+  {
+    name: string(required, max 100),
+    email: string(required, email),
+    address: string(required),
+    dateOfBirth: string(required),
+    registeredDate: string(required only on create),
+    phone?: string(max 40),
+    gender?: string(max 40),
+    preferredLanguage?: string(max 20),
+    externalIdentifiers?: { [system: string]: string }
+  }
+
+PatientResponse
+  {
+    id: UUID, name: string, email: string, address: string,
+    dateOfBirth: string, mrn: string, phone?: string, gender?: string,
+    preferredLanguage?: string,
+    status: ACTIVE|INACTIVE|DECEASED|RESTRICTED|MERGED|ARCHIVED,
+    mergedIntoPatientId?: UUID,
+    externalIdentifiers?: { [system: string]: string }, version: integer
+  }
+
+FHIR CapabilityStatement
+  { resourceType:"CapabilityStatement", status:"active", date:date,
+    kind:"instance", fhirVersion:"4.0.1", format:["json"], implementation:{...},
+    rest:[{mode:"server",resource:[{type:"Patient",interaction:[{code:"read"}],...}]}] }
+
+FHIR Patient
+  { resourceType:"Patient", id:UUID, meta:{versionId:string,lastUpdated:datetime},
+    active:true, identifier:[{system:"urn:patient-management:mrn",value:string}],
+    name:[{text:string}], birthDate:date, address:[{text:string}],
+    telecom:[{system:"email",value:string}], gender?:male|female|other|unknown }
+
+FHIR OperationOutcome
+  { resourceType:"OperationOutcome",
+    issue:[{severity:"error",code:string,diagnostics:string}] }
+
+BILLING
+
+BillingAccountRequest
+  { patientId: UUID(required) }
+
+BillingAccount
+  { id:UUID, patientId:UUID, idempotencyKey:string, status:string,
+    balance:decimal, currency:string(3), version:integer,
+    createdAt:datetime, updatedAt:datetime }
+
+InvoiceCommand
+  { patientId:UUID(required), reference:string(required),
+    amount:decimal(required, >0, max 17 integer/2 fraction digits),
+    currency:string(required, exactly 3 uppercase letters) }
+
+InvoiceRow (currently dynamic)
+  { id:UUID, patient_id:UUID, reference:string, amount:decimal,
+    currency:string, paid:decimal, created_at:datetime }
+
+PaymentCommand
+  { reference:string(required), amount:decimal(required, >0),
+    kind:"PAYMENT"|"REMITTANCE" }
+
+PaymentPostingRow (currently dynamic)
+  { id:UUID, invoice_id:UUID, reference:string, amount:decimal,
+    kind:"PAYMENT"|"REMITTANCE", created_at:datetime }
+
+ANALYTICS
+
+HealthTrendRequest
+  { metric:string(required), segment:string(required), periodStart?:date,
+    periodEnd?:date, value:integer(min 0) }
+HealthTrend
+  { id:UUID, metric:string, segment:string, periodStart?:date, periodEnd?:date,
+    value:integer, createdAt:datetime }
+
+ChronicDiseaseCohortRequest
+  { condition:string(required), riskLevel:string(required), patientCount:integer(min 0) }
+ChronicDiseaseCohort
+  { id:UUID, condition:string, riskLevel:string, patientCount:integer,
+    createdAt:datetime }
+
+RegulatoryReportRequest
+  { reportType:string(required), periodStart?:date, periodEnd?:date }
+RegulatoryReport
+  { id:UUID, reportType:string, periodStart?:date, periodEnd?:date,
+    status:string, createdAt:datetime }
+
+APPOINTMENTS
+
+DoctorScheduleRequest
+  { id?:UUID, doctorId:UUID(required), workDate:date(required),
+    startsAt:string(required), endsAt:string(required), location:string(required) }
+DoctorSchedule
+  { id:UUID, doctorId:UUID, workDate:date, startsAt:time, endsAt:time,
+    location:string, version:integer }
+
+AppointmentRequest
+  { patientId:UUID(required), doctorId:UUID(required), startsAt:datetime(required,
+    future or present), reason:string(required), durationMinutes?:integer(5..480) }
+Appointment
+  { id:UUID, patientId:UUID, doctorId:UUID, startsAt:datetime, endsAt:datetime,
+    reason:string, status:string, cancellationReason?:string,
+    updatedAt:datetime, version:integer }
+
+CancellationRequest
+  { reason:string(required) }
+WaitlistRequest
+  { patientId:UUID, doctorId:UUID, preferredDate:date, reason:string } (all required)
+WaitlistEntry
+  { id:UUID, patientId:UUID, doctorId:UUID, preferredDate:date,
+    reason:string, createdAt:datetime }
+VirtualConsultationRequest
+  { provider:string(required), joinUrl:string(required) }
+VirtualConsultation
+  { id:UUID, appointmentId:UUID, provider:string, joinUrl:string,
+    status:string, createdAt:datetime }
+ConsentFormRequest
+  { patientId:UUID(required), formType:string(required), signature:string(required) }
+ConsentForm
+  { id:UUID, appointmentId:UUID, patientId:UUID, formType:string,
+    signature:string, signedAt:datetime }
+
+EHR
+
+EncounterRequest
+  { patientId:UUID, clinicianId:UUID, startedAt?:datetime, reason:string } (required
+    except startedAt)
+Encounter
+  { id:UUID, patientId:UUID, clinicianId:UUID, startedAt:datetime,
+    endedAt?:datetime, status:string, reason:string, createdAt:datetime,
+    version:integer }
+
+MedicalHistoryRequest
+  { patientId:UUID(required), summary:string(required), allergies?:string[],
+    chronicConditions?:string[] }
+MedicalHistory
+  { id:UUID, patientId:UUID, summary:string, allergies:string[],
+    chronicConditions:string[], createdAt:datetime }
+
+DiagnosisRequest
+  { patientId:UUID, clinicianId:UUID, code:string, description:string,
+    diagnosedOn:date, encounterId?:UUID }
+Diagnosis
+  { id:UUID, patientId:UUID, encounterId?:UUID, clinicianId:UUID, code:string,
+    description:string, diagnosedOn:date, createdAt:datetime }
+
+PrescriptionRequest
+  { patientId:UUID, clinicianId:UUID, medication:string, dosage:string,
+    instructions:string, encounterId?:UUID }
+Prescription
+  { id:UUID, patientId:UUID, encounterId?:UUID, clinicianId:UUID,
+    medication:string, dosage:string, instructions:string, status:string,
+    createdAt:datetime }
+
+LabResultRequest
+  { patientId:UUID, testName:string, resultSummary:string, source:string,
+    collectedOn:date, encounterId?:UUID }
+ExternalLabResultRequest
+  { patientId:UUID, externalSystem:string, testName:string, resultSummary:string,
+    collectedOn:date, encounterId?:UUID }
+LabResult
+  { id:UUID, patientId:UUID, encounterId?:UUID, testName:string,
+    resultSummary:string, source:string, collectedOn:date, importedAt:datetime }
+
+ClinicalNoteRequest
+  { encounterId:UUID, patientId:UUID, clinicianId:UUID, body:string } (all required)
+ClinicalNote
+  { id:UUID, encounterId:UUID, patientId:UUID, clinicianId:UUID, body:string,
+    status:"DRAFT"|"SIGNED", signedAt?:datetime, createdAt:datetime,
+    updatedAt:datetime, version:integer }
+
+VaccinationRequest
+  { patientId:UUID, vaccine:string, administeredOn:date, lotNumber:string }
+VaccinationRecord
+  { id:UUID, patientId:UUID, vaccine:string, administeredOn:date,
+    lotNumber:string, createdAt:datetime }
+
+MedicationSafetyRule
+  { medication:string(max 200), interactingMedication:string(max 200),
+    reason:string(max 1000) } (all required)
+ClinicalAlertCommand
+  { patientId:UUID, assigneeId:UUID, sourceReference:string(max 200),
+    summary:string(max 2000) } (all required)
+ClinicalAlertRow (dynamic)
+  { id:UUID, patient_id:UUID, assignee_id:UUID, source_reference:string,
+    summary:string, status:string, created_at:datetime,
+    acknowledged_by?:string, acknowledged_at?:datetime }
+
+INSURANCE
+
+PolicyRequest
+  { patientId:UUID, providerName:string(max 200), memberNumber:string(max 200),
+    planName:string(max 200) } (all required)
+InsurancePolicy
+  { id:UUID, patientId:UUID, providerName:string, memberNumber:string,
+    planName:string, status:string, createdAt:datetime }
+
+CoverageVerificationRequest
+  { policyId:UUID, serviceCode:string, estimatedCharge:decimal(min 0) }
+CoverageVerification
+  { id:UUID, policyId:UUID, serviceCode:string, status:string,
+    insuranceResponsibility:decimal, patientResponsibility:decimal,
+    verifiedAt:datetime }
+
+ClaimRequest
+  { patientId:UUID, policyId:UUID, invoiceId:UUID, amount:decimal(>0) }
+ClaimAdjudicationRequest
+  { status:"APPROVED"|"DENIED", approvedAmount:decimal(min 0); DENIED requires 0 }
+Claim
+  { id:UUID, patientId:UUID, policyId:UUID, invoiceId:UUID, amount:decimal,
+    status:string, updatedAt:datetime }
+EligibilityEvidence
+  { serviceCode:string, validUntil:date(future/present), payerReference:string,
+    insurancePercent:decimal(0..100) }
+RemittanceRequest
+  { reference:string(required), paidAmount:decimal(required, >0) }
+RemittanceRow (dynamic)
+  { id:UUID, claim_id:UUID, reference:string, paid_amount:decimal,
+    created_at:datetime }
+
+NOTIFICATIONS
+
+NotificationRequest
+  { recipientId:UUID, channel:string, destination:string, template:string,
+    body:string, correlationId?:UUID }
+AppointmentReminderRequest
+  { patientId:UUID, appointmentId:UUID, channel:string, destination:string,
+    message:string }
+BillAlertRequest
+  { patientId:UUID, invoiceId:UUID, channel:string, destination:string,
+    message:string }
+MfaCodeRequest
+  { userId:UUID, channel:string, destination:string, code:string }
+NotificationMessage
+  { id:UUID, recipientId:UUID, channel:string, destination:string,
+    template:string, body:string, status:string, correlationId?:UUID,
+    createdAt:datetime, nextAttemptAt:datetime, sentAt?:datetime, attempts:integer,
+    providerMessageId?:string, lastError?:string, version:integer }
+
+PHARMACY AND INVENTORY
+
+SupplyRequest
+  { id?:UUID, name:string, quantityOnHand:integer(min 0),
+    reorderThreshold:integer(min 0), unitCost:decimal(min 0) }
+SupplyItem
+  { id:UUID, name:string, quantityOnHand:integer, reorderThreshold:integer,
+    unitCost:decimal, updatedAt:datetime }
+MedicationRequest
+  { id?:UUID, name:string, ndcCode:string, quantityOnHand:integer(must be 0 for
+    this API), unitCost:decimal(min 0) }
+MedicationStock
+  { id:UUID, name:string, ndcCode:string, quantityOnHand:integer,
+    unitCost:decimal, updatedAt:datetime }
+PharmacyPrescriptionRequest
+  { ehrPrescriptionId:UUID, patientId:UUID, medication:string,
+    quantity:integer(min 1) }
+PharmacyPrescription
+  { id:UUID, ehrPrescriptionId:UUID, patientId:UUID, medication:string,
+    quantity:integer, status:string, updatedAt:datetime }
+MedicationChargeRequest
+  { patientId:UUID, prescriptionId:UUID, amount:decimal(min 0) }
+MedicationCharge
+  { id:UUID, patientId:UUID, prescriptionId:UUID, amount:decimal,
+    status:string, createdAt:datetime }
+BatchReceipt
+  { medicationId:UUID, lot:string, expiresOn:date(future),
+    quantity:integer(min 1), reference:string }
+SafetyReview
+  { medicationId:UUID, allergiesChecked:boolean, interactionsChecked:boolean,
+    doseChecked:boolean, reason:string }
+StockMovementRow (dynamic)
+  { id:UUID, medication_id:UUID, batch_id?:UUID, prescription_id?:UUID,
+    delta:integer, kind:string, reference:string, created_at:datetime }
+SupplyMovementRow (dynamic)
+  { id:UUID, supply_id:UUID, delta:integer, created_at:datetime }
+PharmacyBill
+  { currency:string(required, exactly 3 uppercase letters) }
+
+AUDIT, PRIVACY AND COMPLIANCE
+
+AuditEventRequest
+  { actorId:UUID, actorRole:string, action:string, patientId:UUID,
+    resourceType:string, resourceId:UUID, sourceService:string, reason:string }
+AuditEvent
+  { id:UUID, sourceEventId:UUID, actorId:string, actorRole:string, action:string,
+    patientId?:UUID, resourceType:string, resourceId?:UUID, sourceService:string,
+    outcome:string, reason?:string, endpoint?:string, requestId?:string,
+    correlationId?:string, occurredAt:datetime, previousHash:string,
+    eventHash:string, hashVersion:integer }
+ConsentGrant
+  { patientId:UUID, subject:string(max 200), expiresAt:datetime,
+    evidenceReference:string(max 200) }
+EmergencyGrant
+  { patientId:UUID, expiresAt:datetime(max one hour),
+    evidenceReference:string(max 200) }
+GrantReview
+  { evidenceReference:string(max 200) }
+PrivacyGrantRow (dynamic)
+  { id:UUID, patient_id:UUID, subject:string, scope:"FHIR_PATIENT_READ",
+    kind:"CONSENT"|"BREAK_GLASS", expires_at:datetime, revoked:boolean,
+    created_by:string, created_at:datetime, evidence:string,
+    reviewed_by?:string, review_evidence?:string }
+ComplianceCaseCreate
+  { kind:INCIDENT|ACCESS_REVIEW|RESTORE_DRILL|RETENTION_REVIEW|DOCUMENT_REVIEW,
+    owner:string(max 200), evidenceReference:string(max 200), dueAt:datetime(future) }
+ComplianceTransition
+  { expectedStatus:string(max 30), status:string(max 30),
+    evidenceReference:string(max 200) }
+ComplianceHold
+  { enabled:boolean, evidenceReference:string(max 200) }
+ComplianceCaseRow (dynamic)
+  { id:UUID, kind:string, status:string, owner:string, evidence:string,
+    due_at:datetime, created_at:datetime, updated_at:datetime, legal_hold:boolean }
+ComplianceHistoryRow (dynamic)
+  { id:UUID, case_id:UUID, actor:string, action:string, evidence:string,
+    occurred_at:datetime }
+
+PATIENT PORTAL
+
+PortalAppointmentCommand
+  { patientId:UUID, preferredSpecialty:string, reason:string }
+RecordAccessCommand
+  { patientId:UUID, recordType:string }
+PortalPaymentCommand
+  { patientId:UUID, invoiceId:UUID, amount:decimal(>0) }
+PortalAppointmentRequest
+  { id:UUID, patientId:UUID, preferredSpecialty:string, reason:string,
+    status:string, createdAt:datetime }
+RecordAccessRequest
+  { id:UUID, patientId:UUID, recordType:string, status:string, createdAt:datetime }
+PortalPayment
+  { id:UUID, patientId:UUID, invoiceId:UUID, amount:decimal,
+    status:string, createdAt:datetime }
+PortalOverview
+  { patientId:UUID, accountStatus:string,
+    appointments:PortalAppointmentRequest[], recordRequests:RecordAccessRequest[],
+    payments:PortalPayment[] }
+PortalIdentity
+  { subject:string(max 200), patientId:UUID }
+ProxyGrant
+  { proxySubject:string(max 200), scope:"RECORDS"|"APPOINTMENTS"|"PAYMENTS",
+    expiresAt:datetime(future) }
+AppointmentResolution
+  { status:"SCHEDULED"|"DECLINED", appointmentReference:string }
+RecordRelease
+  { content:string(required, max 1,000,000) }
+Settlement
+  { providerReference:string(required, max 180) }
+
+STAFF DASHBOARD
+
+ClinicalRoundRequest
+  { staffId:UUID, patientId:UUID, unit:string, notes:string }
+ClinicalRound
+  { id:UUID, staffId:UUID, patientId:UUID, unit:string, notes:string,
+    status:string, updatedAt:datetime }
+PatientChartRequest
+  { id?:UUID, patientId:UUID, summary:string, riskLevel:string }
+PatientChartSummary
+  { id:UUID, patientId:UUID, summary:string, riskLevel:string, updatedAt:datetime }
+StaffTaskRequest
+  { assigneeId:UUID, patientId:UUID, title:string,
+    priority:"ROUTINE"|"HIGH"|"URGENT" }
+StaffTask
+  { id:UUID, assigneeId:UUID, patientId:UUID, title:string, priority:string,
+    status:string, updatedAt:datetime }
+StaffDashboard
+  { staffId:UUID, date:date, rounds:ClinicalRound[], tasks:StaffTask[] }
+TaskHandoff
+  { assigneeId:UUID, queueRole:string, dueAt:datetime, reason:string }
+TaskComment
+  { text:string(required, max 2000) }
+ClinicalTask
+  { reference:string, patientId:UUID, assigneeId:UUID,
+    title:string(max 2000) }
+TaskQueueRow (dynamic)
+  StaffTask fields plus due_at:datetime, escalated:boolean, queue_role:string.
+TaskHistoryRow (dynamic)
+  { id:UUID, task_id:UUID, actor:string, action:string, comment:string,
+    occurred_at:datetime }
+
+3. ENDPOINT CATALOG
+-------------------
+
+Every path below is the external gateway path the browser should use. `Body: none`
+means no request entity. Unless marked public, supply a bearer token.
+
+3.1 Authentication service
+
+POST /auth/login
+  Role: public. Body: LoginRequest. Result: 200 LoginResponse; 401 empty body.
+
+GET /auth/validate
+  Role: any valid token. Body: none. Header: Authorization required.
+  Result: 200 empty body when valid; 401 empty body otherwise.
+
+3.2 Patient service
+
+GET /api/patients
+  Roles: ADMIN, CLINICIAN, REGISTRATION_STAFF. Body: none.
+  Result: 200 PatientResponse[].
+
+GET /api/patients/{id}
+  Roles: same. Path: id UUID. Body: none. Result: 200 PatientResponse; 404.
+
+POST /api/patients
+  Roles: same. Header: optional Idempotency-Key. Body: PatientRequest.
+  Result: 200 PatientResponse. A replay with the same key/payload is idempotent.
+
+GET /api/patients/duplicates?name=&dateOfBirth=&phone=&email=
+  Roles: same. All query fields optional; dateOfBirth is date. Body: none.
+  Result: 200 PatientResponse[].
+
+POST /api/patients/{id}/status/{status}
+  Roles: same. status is a PatientResponse status enum. Body: none.
+  Result: 200 PatientResponse; invalid transition may return 409.
+
+POST /api/patients/{sourceId}/merge/{targetId}
+  Roles: same. Both paths UUID. Body: none.
+  Result: 200 survivor/source PatientResponse reflecting merge; conflict on invalid merge.
+
+POST /api/patients/{sourceId}/unmerge
+  Roles: same. Body: none. Result: 200 PatientResponse; conflict if no reversible merge.
+
+PUT /api/patients/{id}
+  Roles: same. Body: PatientRequest; registeredDate is optional on update.
+  Result: 200 PatientResponse.
+
+DELETE /api/patients/{id}
+  Roles: same. Body: none. Result: 204 empty body.
+
+GET /api/fhir/metadata
+  Roles: ADMIN, CLINICIAN. Accept: application/fhir+json. Body: none.
+  Result: 200 FHIR CapabilityStatement.
+
+GET /api/fhir/Patient/{id}
+  Roles: ADMIN, CLINICIAN plus an active consent or explicit emergency grant.
+  Header: optional X-Break-Glass-Id UUID. Body: none.
+  Result: 200 FHIR Patient with ETag, Last-Modified and Cache-Control:no-store;
+  400/403/404/410/503 FHIR OperationOutcome where handled by this controller.
+
+3.3 Billing service
+
+POST /api/billing/accounts
+  Roles: ADMIN, BILLING_STAFF. Header: optional Idempotency-Key.
+  Body: BillingAccountRequest. Result: 201 BillingAccount.
+
+GET /api/billing/accounts
+  Roles: same. Body: none. Result: 200 BillingAccount[].
+
+GET /api/billing/accounts/{id}
+  Roles: same. Body: none. Result: 200 BillingAccount; 404.
+
+GET /api/billing/accounts/patient/{patientId}
+  Roles: same. Body: none. Result: 200 BillingAccount; 404.
+
+POST /api/billing/invoices
+  Roles: ADMIN, BILLING_STAFF, PHARMACIST. Body: InvoiceCommand.
+  Result: 200 InvoiceRow. `reference` provides idempotency; mismatched reuse is 409.
+
+GET /api/billing/invoices/{id}
+  Roles: ADMIN, BILLING_STAFF. Body: none. Result: 200 InvoiceRow; 404.
+
+GET /api/billing/invoices/patient/{id}
+  Roles: ADMIN, BILLING_STAFF. Body: none. Result: 200 InvoiceRow[].
+
+POST /api/billing/invoices/{id}/postings
+  Roles: ADMIN, BILLING_STAFF. Body: PaymentCommand.
+  Result: 200 PaymentPostingRow; 409 for reused/mismatched reference or overpayment.
+
+3.4 Analytics service
+
+POST /api/analytics/health-trends
+  Roles: ADMIN, ANALYST. Body: HealthTrendRequest. Result: 201 HealthTrend.
+GET /api/analytics/health-trends
+  Roles: same. Body: none. Result: 200 HealthTrend[].
+POST /api/analytics/chronic-disease-cohorts
+  Roles: same. Body: ChronicDiseaseCohortRequest.
+  Result: 201 ChronicDiseaseCohort.
+GET /api/analytics/chronic-disease-cohorts
+  Roles: same. Body: none. Result: 200 ChronicDiseaseCohort[].
+POST /api/analytics/regulatory-reports
+  Roles: same. Body: RegulatoryReportRequest. Result: 201 RegulatoryReport.
+GET /api/analytics/regulatory-reports
+  Roles: same. Body: none. Result: 200 RegulatoryReport[].
+
+3.5 Appointment service
+
+GET /api/appointments/schedules
+  Roles: ADMIN, CLINICIAN, REGISTRATION_STAFF, PATIENT. Body: none.
+  Result: 200 DoctorSchedule[].
+POST /api/appointments/schedules
+  Roles: same. Body: DoctorScheduleRequest. Result: 201 DoctorSchedule.
+GET /api/appointments?patientId=&doctorId=
+  Roles: same. Optional UUID filters. Body: none. Result: 200 Appointment[].
+POST /api/appointments
+  Roles: same. Body: AppointmentRequest. Result: 201 Appointment; 409 on slot conflict.
+POST /api/appointments/{id}/cancel
+  Roles: same. Body: CancellationRequest. Result: 200 Appointment.
+POST /api/appointments/waitlist
+  Roles: same. Body: WaitlistRequest. Result: 201 WaitlistEntry.
+GET /api/appointments/waitlist
+  Roles: same. Body: none. Result: 200 WaitlistEntry[].
+POST /api/appointments/{id}/virtual-consultations
+  Roles: same. Body: VirtualConsultationRequest. Result: 201 VirtualConsultation.
+GET /api/appointments/virtual-consultations
+  Roles: same. Body: none. Result: 200 VirtualConsultation[].
+POST /api/appointments/{id}/consent-forms
+  Roles: same. Body: ConsentFormRequest. Result: 201 ConsentForm.
+GET /api/appointments/consent-forms
+  Roles: same. Body: none. Result: 200 ConsentForm[].
+
+3.6 EHR and clinical-safety service
+
+All standard EHR endpoints require ADMIN or CLINICIAN.
+
+POST /api/ehr/encounters
+  Body: EncounterRequest. Result: 201 Encounter.
+GET /api/ehr/encounters/{patientId}
+  Body: none. Result: 200 Encounter[].
+POST /api/ehr/encounters/{id}/close
+  Body: none. Result: 200 Encounter; 409 when already closed where enforced.
+POST /api/ehr/histories
+  Body: MedicalHistoryRequest. Result: 201 MedicalHistory.
+GET /api/ehr/histories/{patientId}
+  Body: none. Result: 200 MedicalHistory[].
+POST /api/ehr/diagnoses
+  Body: DiagnosisRequest. Result: 201 Diagnosis.
+GET /api/ehr/diagnoses/{patientId}
+  Body: none. Result: 200 Diagnosis[].
+POST /api/ehr/prescriptions
+  Body: PrescriptionRequest. Result: 201 Prescription; 409 on medication safety block.
+GET /api/ehr/prescriptions/{patientId}
+  Body: none. Result: 200 Prescription[].
+POST /api/ehr/lab-results
+  Body: LabResultRequest. Result: 201 LabResult.
+POST /api/ehr/lab-results/import
+  Body: ExternalLabResultRequest. Result: 202 LabResult.
+GET /api/ehr/lab-results/{patientId}
+  Body: none. Result: 200 LabResult[].
+POST /api/ehr/notes
+  Body: ClinicalNoteRequest. Result: 201 ClinicalNote.
+GET /api/ehr/notes/{patientId}
+  Body: none. Result: 200 ClinicalNote[].
+POST /api/ehr/notes/{id}/sign
+  Body: none. Result: 200 ClinicalNote; signed notes become locked by workflow.
+POST /api/ehr/vaccinations
+  Body: VaccinationRequest. Result: 201 VaccinationRecord.
+GET /api/ehr/vaccinations/{patientId}
+  Body: none. Result: 200 VaccinationRecord[].
+
+Clinical-safety endpoints require ADMIN, CLINICIAN or NURSE except where narrowed:
+
+POST /api/ehr/safety/rules
+  Role: ADMIN. Body: MedicationSafetyRule. Result: 200 UUID (JSON string).
+POST /api/ehr/safety/alerts
+  Roles: ADMIN, CLINICIAN, NURSE. Body: ClinicalAlertCommand.
+  Result: 200 ClinicalAlertRow; sourceReference is idempotent, mismatch is 409.
+GET /api/ehr/safety/alerts/patient/{id}
+  Roles: same. Body: none. Result: 200 ClinicalAlertRow[].
+POST /api/ehr/safety/alerts/{id}/acknowledge
+  Roles: same, but actor must be assignee or ADMIN. Body: none. Result: 200 empty.
+POST /api/ehr/safety/alerts/{id}/escalate
+  Roles: same. Body: none. Result: 200 StaffTask-shaped dynamic JSON; 409 if closed.
+GET /api/ehr/safety/prescriptions/{id}/dispensing
+  Roles: ADMIN, PHARMACIST. Body: none.
+  Result: 200 {id,patientId,medication,status}; conflicts block unsafe dispensing.
+POST /api/ehr/safety/prescriptions/{id}/discontinue
+  Roles: ADMIN, CLINICIAN. Body: none. Result: 200 empty; 409 if not active.
+
+3.7 Insurance service
+
+All endpoints require ADMIN or BILLING_STAFF.
+
+POST /api/insurance/policies
+  Body: PolicyRequest. Result: 201 InsurancePolicy.
+GET /api/insurance/policies/{patientId}
+  Body: none. Result: 200 InsurancePolicy[].
+POST /api/insurance/coverage-verifications
+  Body: CoverageVerificationRequest. Result: 201 CoverageVerification.
+GET /api/insurance/coverage-verifications
+  Body: none. Result: 200 CoverageVerification[].
+POST /api/insurance/claims
+  Body: ClaimRequest. Result: 201 Claim; duplicate invoice/details mismatch is 409.
+POST /api/insurance/claims/{id}/adjudicate
+  Body: ClaimAdjudicationRequest. Result: 200 Claim; invalid input 400; stale state 409.
+GET /api/insurance/claims
+  Body: none. Result: 200 Claim[].
+POST /api/insurance/policies/{id}/eligibility-evidence
+  Body: EligibilityEvidence. Result: 200 empty.
+POST /api/insurance/claims/{id}/remittances
+  Body: RemittanceRequest. Result: 200 RemittanceRow; exact approved amount required.
+POST /api/insurance/claims/{id}/reconcile
+  Body: none. Result: 200 PaymentPostingRow from billing; 409 without remittance.
+
+3.8 Notification service
+
+Roles: ADMIN, CLINICIAN, REGISTRATION_STAFF or BILLING_STAFF.
+
+POST /api/notifications
+  Body: NotificationRequest. Result: 202 NotificationMessage.
+POST /api/notifications/appointment-reminders
+  Body: AppointmentReminderRequest. Result: 202 NotificationMessage.
+POST /api/notifications/bill-alerts
+  Body: BillAlertRequest. Result: 202 NotificationMessage.
+POST /api/notifications/mfa-codes
+  Body: MfaCodeRequest. Result: 202 NotificationMessage.
+GET /api/notifications?recipientId=
+  Optional recipientId UUID. Body: none. Result: 200 NotificationMessage[].
+
+3.9 Inventory and pharmacy service
+
+All endpoints require ADMIN or PHARMACIST.
+
+POST /api/inventory-pharmacy/supplies
+  Body: SupplyRequest. Result: 201 SupplyItem.
+GET /api/inventory-pharmacy/supplies
+  Body: none. Result: 200 SupplyItem[].
+POST /api/inventory-pharmacy/medications
+  Body: MedicationRequest. Result: 201 MedicationStock; quantity must be zero.
+GET /api/inventory-pharmacy/medications
+  Body: none. Result: 200 MedicationStock[].
+POST /api/inventory-pharmacy/prescriptions
+  Body: PharmacyPrescriptionRequest. Result: 201 PharmacyPrescription.
+POST /api/inventory-pharmacy/prescriptions/{id}/dispense
+  Body: none. Result: 200 PharmacyPrescription; 409 without safety approval,
+  sufficient unexpired stock or successful EHR safety verification.
+POST /api/inventory-pharmacy/medication-charges
+  Body: MedicationChargeRequest. Result: 201 MedicationCharge; must match dispense.
+GET /api/inventory-pharmacy/medication-charges
+  Body: none. Result: 200 MedicationCharge[].
+POST /api/inventory-pharmacy/batches
+  Body: BatchReceipt. Result: 200 StockMovementRow; reference is idempotent.
+POST /api/inventory-pharmacy/prescriptions/{id}/review
+  Body: SafetyReview. Result: 200 empty; all three checks must be true for approval.
+GET /api/inventory-pharmacy/medications/{id}/movements
+  Body: none. Result: 200 StockMovementRow[].
+GET /api/inventory-pharmacy/supplies/{id}/movements
+  Body: none. Result: 200 SupplyMovementRow[].
+POST /api/inventory-pharmacy/prescriptions/{id}/bill
+  Body: PharmacyBill. Result: 200 InvoiceRow from billing; 409 if no dispensed charge.
+
+3.10 Audit, privacy and compliance service
+
+POST /api/audit/events
+  Roles: ADMIN, AUDITOR. Body: AuditEventRequest. Result: 201 AuditEvent.
+GET /api/audit/events?patientId=&actorId=
+  Roles: ADMIN, AUDITOR. Optional UUID filters. Body: none.
+  Result: 200 AuditEvent[].
+GET /api/audit/patient-record-access/{patientId}
+  Roles: ADMIN, AUDITOR. Body: none. Result: 200 AuditEvent[].
+
+POST /api/compliance/privacy/consents
+  Role: PRIVACY_OFFICER. Body: ConsentGrant.
+  Result: 200 {id:UUID}; expiry must be future and no more than 365 days.
+POST /api/compliance/privacy/break-glass
+  Role: CLINICIAN. Body: EmergencyGrant.
+  Result: 200 {id:UUID}; subject comes from JWT; expiry maximum one hour.
+POST /api/compliance/privacy/grants/{id}/revoke
+  Role: PRIVACY_OFFICER. Body: none. Result: 200 empty.
+POST /api/compliance/privacy/break-glass/{id}/review
+  Role: PRIVACY_OFFICER and reviewer must be independent. Body: GrantReview.
+  Result: 200 empty; grant is revoked; invalid/stale review is 409.
+GET /api/compliance/privacy/break-glass/reviews
+  Role: PRIVACY_OFFICER. Body: none. Result: 200 PrivacyGrantRow[] (oldest 100).
+POST /api/compliance/privacy/decisions/{patientId}?emergencyId=
+  Roles: CLINICIAN, ADMIN. Optional emergencyId UUID. Body: none.
+  Result: 200 {allowed:boolean}. Intended for trusted service decision flow.
+
+POST /api/compliance/cases
+  Role: PRIVACY_OFFICER. Body: ComplianceCaseCreate. Result: 200 {id:UUID}.
+GET /api/compliance/cases?overdue=false
+  Role: PRIVACY_OFFICER. Body: none. Result: 200 ComplianceCaseRow[] (max 100).
+GET /api/compliance/cases/{id}/history
+  Role: PRIVACY_OFFICER. Body: none. Result: 200 ComplianceHistoryRow[].
+POST /api/compliance/cases/{id}/transitions
+  Role: PRIVACY_OFFICER. Body: ComplianceTransition. Result: 200 empty.
+  Incident path: OPEN -> INVESTIGATING -> CONTAINED -> ASSESSED ->
+  NOTIFICATION_REQUIRED -> NOTIFIED -> REMEDIATING -> CLOSED, or ASSESSED ->
+  NO_NOTIFICATION_REQUIRED -> REMEDIATING -> CLOSED. Other kinds use OPEN ->
+  INVESTIGATING -> REMEDIATING -> CLOSED. Invalid/stale transition is 409.
+POST /api/compliance/cases/{id}/hold
+  Role: PRIVACY_OFFICER. Body: ComplianceHold. Result: 200 empty. A held case
+  cannot transition to CLOSED until the hold is released.
+
+3.11 Patient portal service
+
+Patient portal endpoints require ADMIN or PATIENT. The service performs additional
+owner/proxy-scope checks for protected patient operations.
+
+GET /api/portal/patients/{patientId}/overview
+  Body: none. Result: 200 PortalOverview.
+POST /api/portal/appointment-requests
+  Body: PortalAppointmentCommand. Result: 201 PortalAppointmentRequest.
+POST /api/portal/record-requests
+  Body: RecordAccessCommand. Result: 201 RecordAccessRequest.
+POST /api/portal/payments
+  Header: Idempotency-Key (required). Body: PortalPaymentCommand.
+  Result: 201 PortalPayment; deliberate retry must reuse the same key.
+POST /api/portal/identities
+  Role: ADMIN. Body: PortalIdentity. Result: 200 empty.
+POST /api/portal/patients/{id}/proxies
+  Roles: ADMIN/PATIENT plus owner check. Body: ProxyGrant.
+  Result: 200 UUID (grant ID as JSON string).
+DELETE /api/portal/patients/{patient}/proxies/{id}
+  Roles: ADMIN/PATIENT plus owner check. Body: none. Result: 200 empty.
+GET /api/portal/patients/{id}/requests?type=
+  Roles: ADMIN/PATIENT plus owner/scope check. type is the supported request type.
+  Body: none. Result: 200 dynamic request rows.
+POST /api/portal/appointment-requests/{id}/cancel
+  Roles: ADMIN/PATIENT with request access. Body: none. Result: 200 empty.
+POST /api/portal/appointment-requests/{id}/resolve
+  Role: ADMIN. Body: AppointmentResolution. Result: 200 empty.
+POST /api/portal/record-requests/{id}/release
+  Role: ADMIN. Body: RecordRelease. Result: 200 empty.
+GET /api/portal/record-requests/{id}/download
+  Roles: ADMIN/PATIENT with RECORDS access. Body: none.
+  Result: 200 text/plain attachment named records.txt with Cache-Control:no-store;
+  409 until the request is fulfilled.
+POST /api/portal/payments/{id}/settle
+  Role: ADMIN. Body: Settlement. Result: 200 PaymentPostingRow from billing.
+
+3.12 Staff dashboard service
+
+Base roles: ADMIN, CLINICIAN, NURSE, RECEPTIONIST, BILLING_STAFF, PHARMACIST or
+LAB_STAFF. Some operations narrow this set and task access also checks assignee/
+queue authorization.
+
+GET /api/staff-dashboard/daily/{staffId}
+  Body: none. Result: 200 StaffDashboard.
+POST /api/staff-dashboard/rounds
+  Roles: ADMIN, CLINICIAN, NURSE. Body: ClinicalRoundRequest.
+  Result: 201 ClinicalRound.
+POST /api/staff-dashboard/charts
+  Roles: ADMIN, CLINICIAN, NURSE. Body: PatientChartRequest.
+  Result: 201 PatientChartSummary.
+GET /api/staff-dashboard/charts/{patientId}
+  Roles: ADMIN, CLINICIAN, NURSE. Body: none.
+  Result: 200 PatientChartSummary[].
+POST /api/staff-dashboard/tasks
+  Base roles. Body: StaffTaskRequest. Result: 201 StaffTask.
+POST /api/staff-dashboard/tasks/{id}/complete
+  Base roles plus task authorization. Body: none. Result: 200 StaffTask.
+GET /api/staff-dashboard/queues/{role}?limit=50
+  Base roles plus requested-queue authorization. limit is clamped to 1..200.
+  Body: none. Result: 200 TaskQueueRow[].
+POST /api/staff-dashboard/tasks/{id}/claim
+  Base roles plus queue authorization; JWT subject must be a UUID. Body: none.
+  Result: 200 empty; 409 if already claimed/completed.
+POST /api/staff-dashboard/tasks/{id}/handoff
+  Base roles plus task authorization. Body: TaskHandoff. Result: 200 empty.
+POST /api/staff-dashboard/tasks/{id}/comments
+  Base roles plus task authorization. Body: TaskComment. Result: 200 empty.
+GET /api/staff-dashboard/tasks/{id}/history
+  Base roles plus task authorization. Body: none. Result: 200 TaskHistoryRow[].
+POST /api/staff-dashboard/tasks/escalate
+  Role: ADMIN. Body: none. Result: 200 integer count of escalated overdue tasks.
+POST /api/staff-dashboard/clinical-tasks
+  Roles: ADMIN, CLINICIAN, NURSE. Body: ClinicalTask.
+  Result: 200 StaffTask-shaped dynamic row; reference is idempotent.
+
+4. FRONTEND INTEGRATION NOTES
+-----------------------------
+
+  - Generate clients from the 12 OpenAPI documents, but call gateway-prefixed paths.
+    Some service documents advertise direct paths; gateway routing adds /api or
+    /auth as shown above.
+  - Do not expose the privacy decision endpoint as an ordinary end-user control.
+    It exists to support server-side FHIR authorization.
+  - Do not assume a PATIENT role can safely use every endpoint whose coarse role
+    annotation permits it. Platform-wide patient/facility authorization is still an
+    open production gate outside the patient-portal service's ownership checks.
+  - Treat all snake_case dynamic Map responses as provisional contracts. Add explicit
+    backend response DTOs and OpenAPI annotations before building durable UI around
+    them.
+  - Render record-release downloads as files; do not insert their content into HTML.
+  - Payment/claim/invoice amounts must use decimal-aware formatting and calculations.
+  - Status values not declared as enums may grow. Display an unknown status safely.
+  - Refresh workflow resources after a 409; do not overwrite newer server state.
+  - The Swagger UI is an index of separate specs, not one merged contract. A JSON
+    bundle can preserve the specs, while a true merged OpenAPI document needs schema
+    namespace/collision handling.
+
+5. CONTRACT MAINTENANCE CHECKLIST
+---------------------------------
+
+When a backend controller or DTO changes:
+
+  1. Start the synthetic/local stack with public docs enabled.
+  2. Export all OpenAPI JSON through the gateway.
+  3. Compare paths, methods, required headers, schemas and status codes.
+  4. Update API.txt and regenerate TypeScript types.
+  5. Add/update request mocks and contract tests.
+  6. Verify gateway prefix, authentication, role denial and patient context.
+  7. Ensure new response bodies do not expose internal credentials, hashes or PHI
+     fields beyond the workflow's minimum necessary data.
