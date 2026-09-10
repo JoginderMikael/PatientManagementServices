@@ -1,9 +1,9 @@
 PATIENT MANAGEMENT FRONTEND - EXPECTED ARCHITECTURE
 ===================================================
 
-Status: Phases 1-3 plus server-owned patient identity resolution complete;
-        Phases 4-5 and invitation-based enrollment planned
-Last reviewed and verified: 2026-09-10
+Status: Phases 1-3 and the initial Phase 4 specialized-operations slice complete;
+        Phase 5 and invitation-based enrollment planned
+Last reviewed and verified: 2026-09-11
 Applies to: patient-portal-frontend
 
 1. PURPOSE
@@ -23,11 +23,10 @@ The current code is a Create React App/React 19/strict TypeScript application wi
 the Phase 1 foundation implemented. It has provider and route composition, shared
 patient/staff shells, centralized role-aware navigation, an in-memory authenticated
 session, a typed gateway boundary, accessible shared primitives and synthetic test
-infrastructure. The minimal patient portal and core Phase 3 staff workflows are
-implemented against verified gateway contracts. Billing, insurance, pharmacy,
-inventory, notifications, compliance, audit and reports retain explicit Phase 4
-placeholders. The architecture below records both the verified current
-implementation and the planned end state.
+infrastructure. The minimal patient portal, core Phase 3 staff workflows and eight
+Phase 4 specialized-operation routes are implemented against verified gateway
+contracts. The architecture below records both the verified current implementation
+and the planned end state.
 
 Identity boundary update (2026-09-10): patient screens no longer derive or select
 patientId from JWT claims. They load GET /api/portal/me, and the portal backend
@@ -670,6 +669,8 @@ Known contract boundaries:
 
 PHASE 4 - SPECIALIZED OPERATIONS
 
+Implementation status: initial operational slice delivered on 2026-09-11.
+
 Scope:
 
   1. Billing and insurance: accounts, invoices, postings, policy coverage, claims,
@@ -690,6 +691,54 @@ Exit gate:
     optimistic completion and always refetch authoritative results.
   - Audit/analytics views prevent raw identifiers, PHI and small sensitive cells
     from leaking through telemetry or exports.
+
+Verified implementation:
+
+  - `/staff/billing` lists accounts, creates idempotent patient accounts, loads
+    patient invoices, creates reference-idempotent invoices and posts payments.
+    Payment conflicts refetch authoritative account/invoice state.
+  - `/staff/insurance` lists coverage evidence and claims. Submitted-claim approval
+    or denial and approved-claim reconciliation require confirmation; stale or
+    incomplete remittance state is never shown as locally complete.
+  - `/staff/pharmacy` records the three required safety checks and separates that
+    approval from confirmed dispensing. Dispensing refetches medication stock and
+    charge state after success or conflict.
+  - `/staff/inventory` highlights reorder exposure, updates supply balances and
+    receives future-dated medication batches using stable receipt references.
+  - `/staff/notifications` queues minimum-necessary operational messages and shows
+    delivery status/attempts without equating HTTP 202 acceptance with delivery.
+  - `/staff/compliance` is limited to PRIVACY_OFFICER because the current backend
+    case and review contracts do not authorize ADMIN. It creates cases, filters
+    overdue work, confirms state transitions and case-level holds, and performs
+    independent emergency-access review/revocation with evidence references.
+  - `/staff/audit` provides URL-owned patient/actor filters over append-only evidence
+    and intentionally exposes no browser mutation or export action.
+  - `/staff/reports` lists regulatory reports, population trends and disease cohorts,
+    accepts regulatory report requests and suppresses cohort counts below five. It
+    exposes no patient drill-down or browser export.
+  - Every route uses the shared authenticated gateway client, query cache, loading,
+    empty, denial, conflict and retry states. HTTP 502 dependency failures are now
+    treated as transient alongside 503. No specialized-operation response is
+    persisted to browser storage.
+  - Synthetic MSW tests cover all eight routes across their specialist roles,
+    confirmation-before-dispensing, 409 behavior, compliance transitions,
+    append-only audit presentation, small-cell suppression and basic accessibility.
+
+Known Phase 4 boundaries:
+
+  - The current slice does not expose every creation endpoint. Policy enrollment,
+    claim/remittance entry, medication catalogue creation, inbound prescription
+    creation, pharmacy invoice initiation, consent creation and trend/cohort authoring
+    remain backend-supported workflows for a later UI increment.
+  - Billing and pharmacy roles cannot query the patient registry, so these screens
+    accept UUIDs from the operator's verified upstream work item. A minimum-necessary
+    patient lookup/directory contract is required before replacing those identifiers
+    with a safe patient selector.
+  - Pharmacy exposes no list-prescriptions backend endpoint. The controlled workflow
+    therefore starts from a prescription UUID supplied by the pharmacy work queue.
+  - Audit hashes are abbreviated for visual verification. Independent chain
+    validation and evidence export remain controlled operational processes outside
+    the browser.
 
 PHASE 5 - INTEGRATION, HARDENING AND RELEASE
 

@@ -29,6 +29,9 @@ describe("route presentation policy", () => {
       ["Audit evidence"],
     );
     expect(
+      navigationFor("PRIVACY_OFFICER", "staff").map((item) => item.label),
+    ).toEqual(["Compliance"]);
+    expect(
       navigationFor("REGISTRATION_STAFF", "staff").map((item) => item.label),
     ).toEqual(["Patients", "Schedule", "Notifications"]);
   });

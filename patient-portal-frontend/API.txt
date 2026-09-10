@@ -2,7 +2,7 @@ PATIENT MANAGEMENT FRONTEND - API CONTRACT CATALOG
 ==================================================
 
 Status: source-derived frontend reference
-Last reviewed: 2026-09-09
+Last reviewed: 2026-09-11
 Gateway base URL: http://localhost:4004
 Endpoint count: 130 application operations across 12 backend services
 
@@ -18,6 +18,13 @@ Several newer workflow endpoints return Map<String,Object> or void. For those, t
 file records the database-shaped JSON observed in the service implementation. Those
 shapes should be promoted to explicit backend DTOs before the frontend treats them
 as a long-term stable contract.
+
+Phase 4 frontend usage update (2026-09-11): the billing, insurance, pharmacy,
+inventory, notification, compliance, audit and report routes now call the relevant
+catalogued endpoints. Safety-sensitive mutations confirm first and invalidate the
+authoritative query after success or conflict. The compliance UI is restricted to
+PRIVACY_OFFICER to match the case/review controller contracts; ADMIN remains allowed
+on audit and analytics where explicitly documented below.
 
 1. TRANSPORT CONVENTIONS
 ------------------------

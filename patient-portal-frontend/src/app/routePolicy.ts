@@ -109,7 +109,7 @@ export const staffNavigation: readonly NavigationItem[] = [
     label: "Compliance",
     to: "/staff/compliance",
     abbreviation: "CP",
-    roles: ["ADMIN", "PRIVACY_OFFICER"],
+    roles: ["PRIVACY_OFFICER"],
   },
   {
     label: "Audit evidence",

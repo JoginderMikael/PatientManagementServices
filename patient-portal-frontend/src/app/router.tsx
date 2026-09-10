@@ -5,7 +5,14 @@ import { AppShell } from "../components/layout/AppShell";
 import { ForbiddenPage } from "../features/foundation/pages/ForbiddenPage";
 import { LoginPage } from "../features/foundation/pages/LoginPage";
 import { NotFoundPage } from "../features/foundation/pages/NotFoundPage";
-import { WorkspacePage } from "../features/foundation/pages/WorkspacePage";
+import { AuditOperationsPage } from "../features/operations/pages/AuditOperationsPage";
+import { BillingOperationsPage } from "../features/operations/pages/BillingOperationsPage";
+import { ComplianceOperationsPage } from "../features/operations/pages/ComplianceOperationsPage";
+import { InsuranceOperationsPage } from "../features/operations/pages/InsuranceOperationsPage";
+import { InventoryOperationsPage } from "../features/operations/pages/InventoryOperationsPage";
+import { NotificationsOperationsPage } from "../features/operations/pages/NotificationsOperationsPage";
+import { PharmacyOperationsPage } from "../features/operations/pages/PharmacyOperationsPage";
+import { ReportsOperationsPage } from "../features/operations/pages/ReportsOperationsPage";
 import { AccessPage } from "../features/patientPortal/pages/AccessPage";
 import { AppointmentsPage } from "../features/patientPortal/pages/AppointmentsPage";
 import { BillingPage } from "../features/patientPortal/pages/BillingPage";
@@ -17,38 +24,7 @@ import { PatientRecordPage } from "../features/staff/pages/PatientRecordPage";
 import { PatientsPage } from "../features/staff/pages/PatientsPage";
 import { SchedulePage } from "../features/staff/pages/SchedulePage";
 import { WorkQueuePage } from "../features/staff/pages/WorkQueuePage";
-import {
-  patientRoles,
-  staffNavigation,
-  staffRoles,
-} from "./routePolicy";
-
-const staffPages = [
-  ["billing", "Billing", "Review patient accounts, invoices and postings."],
-  ["insurance", "Insurance", "Manage coverage, claims and remittances."],
-  [
-    "pharmacy",
-    "Pharmacy",
-    "Review prescriptions and controlled dispensing steps.",
-  ],
-  ["inventory", "Inventory", "Review stock, batches and movements."],
-  [
-    "notifications",
-    "Notifications",
-    "Review permitted operational delivery activity.",
-  ],
-  [
-    "compliance",
-    "Compliance",
-    "Manage privacy cases, reviews and legal holds.",
-  ],
-  ["audit", "Audit evidence", "Review append-only access evidence."],
-  [
-    "reports",
-    "Reports",
-    "Review aggregate operational and population-health measures.",
-  ],
-] as const;
+import { patientRoles, staffNavigation, staffRoles } from "./routePolicy";
 
 export function AppRoutes() {
   return (
@@ -69,42 +45,229 @@ export function AppRoutes() {
         <Route element={<RequireRole allow={staffRoles} />}>
           <Route path="/staff" element={<AppShell surface="staff" />}>
             <Route index element={<Navigate to="work-queue" replace />} />
-            <Route path="work-queue" element={<RequireRole allow={staffNavigation.find(item=>item.to==='/staff/work-queue')!.roles}><WorkQueuePage /></RequireRole>} />
-            <Route path="patients" element={<RequireRole allow={staffNavigation.find(item=>item.to==='/staff/patients')!.roles}><PatientsPage /></RequireRole>} />
-            <Route path="schedule" element={<RequireRole allow={staffNavigation.find(item=>item.to==='/staff/schedule')!.roles}><SchedulePage /></RequireRole>} />
-            <Route path="clinical-chart" element={<RequireRole allow={staffNavigation.find(item=>item.to==='/staff/clinical-chart')!.roles}><ClinicalChartLandingPage /></RequireRole>} />
-            <Route element={<RequireRole allow={['ADMIN','CLINICIAN','REGISTRATION_STAFF']} />}>
-              <Route path="patients/:patientId" element={<StaffPatientLayout />}>
+            <Route
+              path="work-queue"
+              element={
+                <RequireRole
+                  allow={
+                    staffNavigation.find(
+                      (item) => item.to === "/staff/work-queue",
+                    )!.roles
+                  }
+                >
+                  <WorkQueuePage />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="patients"
+              element={
+                <RequireRole
+                  allow={
+                    staffNavigation.find(
+                      (item) => item.to === "/staff/patients",
+                    )!.roles
+                  }
+                >
+                  <PatientsPage />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="schedule"
+              element={
+                <RequireRole
+                  allow={
+                    staffNavigation.find(
+                      (item) => item.to === "/staff/schedule",
+                    )!.roles
+                  }
+                >
+                  <SchedulePage />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="clinical-chart"
+              element={
+                <RequireRole
+                  allow={
+                    staffNavigation.find(
+                      (item) => item.to === "/staff/clinical-chart",
+                    )!.roles
+                  }
+                >
+                  <ClinicalChartLandingPage />
+                </RequireRole>
+              }
+            />
+            <Route
+              element={
+                <RequireRole
+                  allow={["ADMIN", "CLINICIAN", "REGISTRATION_STAFF"]}
+                />
+              }
+            >
+              <Route
+                path="patients/:patientId"
+                element={<StaffPatientLayout />}
+              >
                 <Route index element={<Navigate to="summary" replace />} />
                 <Route path="summary" element={<PatientRecordPage />} />
                 <Route path="demographics" element={<PatientRecordPage />} />
-                <Route path="encounters" element={<RequireRole allow={['ADMIN','CLINICIAN']}><PatientRecordPage /></RequireRole>} />
-                <Route path="medications" element={<RequireRole allow={['ADMIN','CLINICIAN']}><PatientRecordPage /></RequireRole>} />
-                <Route path="labs" element={<RequireRole allow={['ADMIN','CLINICIAN']}><PatientRecordPage /></RequireRole>} />
-                <Route path="notes" element={<RequireRole allow={['ADMIN','CLINICIAN']}><PatientRecordPage /></RequireRole>} />
-                <Route path="vaccinations" element={<RequireRole allow={['ADMIN','CLINICIAN']}><PatientRecordPage /></RequireRole>} />
-              </Route>
-            </Route>
-            {staffPages.map(([path, title, description]) => {
-              const policy = staffNavigation.find(
-                (item) => item.to === `/staff/${path}`,
-              )!;
-              return (
                 <Route
-                  key={path}
-                  path={path}
+                  path="encounters"
                   element={
-                    <RequireRole allow={policy.roles}>
-                      <WorkspacePage
-                        eyebrow="Staff operations"
-                        title={title}
-                        description={description}
-                      />
+                    <RequireRole allow={["ADMIN", "CLINICIAN"]}>
+                      <PatientRecordPage />
                     </RequireRole>
                   }
                 />
-              );
-            })}
+                <Route
+                  path="medications"
+                  element={
+                    <RequireRole allow={["ADMIN", "CLINICIAN"]}>
+                      <PatientRecordPage />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="labs"
+                  element={
+                    <RequireRole allow={["ADMIN", "CLINICIAN"]}>
+                      <PatientRecordPage />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="notes"
+                  element={
+                    <RequireRole allow={["ADMIN", "CLINICIAN"]}>
+                      <PatientRecordPage />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="vaccinations"
+                  element={
+                    <RequireRole allow={["ADMIN", "CLINICIAN"]}>
+                      <PatientRecordPage />
+                    </RequireRole>
+                  }
+                />
+              </Route>
+            </Route>
+            <Route
+              path="billing"
+              element={
+                <RequireRole
+                  allow={
+                    staffNavigation.find(
+                      (item) => item.to === "/staff/billing",
+                    )!.roles
+                  }
+                >
+                  <BillingOperationsPage />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="insurance"
+              element={
+                <RequireRole
+                  allow={
+                    staffNavigation.find(
+                      (item) => item.to === "/staff/insurance",
+                    )!.roles
+                  }
+                >
+                  <InsuranceOperationsPage />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="pharmacy"
+              element={
+                <RequireRole
+                  allow={
+                    staffNavigation.find(
+                      (item) => item.to === "/staff/pharmacy",
+                    )!.roles
+                  }
+                >
+                  <PharmacyOperationsPage />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="inventory"
+              element={
+                <RequireRole
+                  allow={
+                    staffNavigation.find(
+                      (item) => item.to === "/staff/inventory",
+                    )!.roles
+                  }
+                >
+                  <InventoryOperationsPage />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="notifications"
+              element={
+                <RequireRole
+                  allow={
+                    staffNavigation.find(
+                      (item) => item.to === "/staff/notifications",
+                    )!.roles
+                  }
+                >
+                  <NotificationsOperationsPage />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="compliance"
+              element={
+                <RequireRole
+                  allow={
+                    staffNavigation.find(
+                      (item) => item.to === "/staff/compliance",
+                    )!.roles
+                  }
+                >
+                  <ComplianceOperationsPage />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="audit"
+              element={
+                <RequireRole
+                  allow={
+                    staffNavigation.find((item) => item.to === "/staff/audit")!
+                      .roles
+                  }
+                >
+                  <AuditOperationsPage />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="reports"
+              element={
+                <RequireRole
+                  allow={
+                    staffNavigation.find(
+                      (item) => item.to === "/staff/reports",
+                    )!.roles
+                  }
+                >
+                  <ReportsOperationsPage />
+                </RequireRole>
+              }
+            />
           </Route>
         </Route>
       </Route>

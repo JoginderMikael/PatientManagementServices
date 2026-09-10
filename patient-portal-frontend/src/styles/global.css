@@ -33,6 +33,16 @@ a {
   color: var(--color-info);
 }
 
+.link-button {
+  padding: 0;
+  color: var(--color-info);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 :focus-visible {
   outline: 3px solid color-mix(in srgb, var(--color-focus) 45%, transparent);
   outline-offset: 2px;
