@@ -2,15 +2,16 @@ package git.jogindermikael.authservice.util;
 
 import git.jogindermikael.authservice.model.User;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.UUID;
+import javax.crypto.spec.SecretKeySpec;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,12 +33,15 @@ class JwtUtilTest {
         JwtUtil jwtUtil = new JwtUtil(SECRET, "patient-management-auth", "patient-management-api", Duration.ofMinutes(15));
 
         String token = jwtUtil.generateToken(user);
-        Claims claims = Jwts.parser()
-                .verifyWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(SECRET.getBytes(StandardCharsets.UTF_8))))
+        Jws<Claims> signedClaims = Jwts.parser()
+                .verifyWith(new SecretKeySpec(
+                        Base64.getDecoder().decode(SECRET.getBytes(StandardCharsets.UTF_8)),
+                        "HmacSHA256"))
                 .build()
-                .parseSignedClaims(token)
-                .getPayload();
+                .parseSignedClaims(token);
+        Claims claims = signedClaims.getPayload();
 
+        assertEquals("HS256", signedClaims.getHeader().getAlgorithm());
         assertEquals(userId.toString(), claims.getSubject());
         assertEquals(userId.toString(), claims.get("user_id", String.class));
         assertEquals("admin@example.test", claims.get("email", String.class));

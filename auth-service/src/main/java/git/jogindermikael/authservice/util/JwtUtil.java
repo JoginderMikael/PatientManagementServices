@@ -3,14 +3,13 @@ package git.jogindermikael.authservice.util;
 import git.jogindermikael.authservice.model.User;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
@@ -23,7 +22,7 @@ import java.util.UUID;
 @Component
 public class JwtUtil {
 
-    private final Key secretKey;
+    private final SecretKey secretKey;
     private final String issuer;
     private final String audience;
     private final Duration accessTokenTtl;
@@ -33,7 +32,7 @@ public class JwtUtil {
                    @Value("${jwt.audience}") String audience,
                    @Value("${jwt.access-token-ttl}") Duration accessTokenTtl) {
         byte[] keyBytes = Base64.getDecoder().decode(secret.getBytes(StandardCharsets.UTF_8));
-        this.secretKey = Keys.hmacShaKeyFor(keyBytes);
+        this.secretKey = new SecretKeySpec(keyBytes, "HmacSHA256");
         this.issuer = issuer;
         this.audience = audience;
         this.accessTokenTtl = accessTokenTtl;
@@ -53,7 +52,7 @@ public class JwtUtil {
                 .claim("scope", user.getRole().toLowerCase(Locale.ROOT))
                 .issuedAt(Date.from(issuedAt))
                 .expiration(Date.from(issuedAt.plus(accessTokenTtl)))
-                .signWith(secretKey)
+                .signWith(secretKey, Jwts.SIG.HS256)
                 .compact();
     }
 
