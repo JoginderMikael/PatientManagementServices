@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM maven:3.9.9-eclipse-temurin-21 AS builder
 
 WORKDIR /workspace
@@ -19,11 +20,13 @@ COPY staff-dashboard-service/pom.xml staff-dashboard-service/pom.xml
 COPY infrastructure/pom.xml infrastructure/pom.xml
 COPY integration-tests/pom.xml integration-tests/pom.xml
 
-RUN mvn -pl ehr-service -am dependency:go-offline -B
+RUN --mount=type=cache,id=patient-management-maven,target=/root/.m2 \
+    mvn -pl ehr-service -am dependency:go-offline -B
 
 COPY ehr-service/src ehr-service/src
 
-RUN mvn -pl ehr-service -am clean package -DskipTests
+RUN --mount=type=cache,id=patient-management-maven,target=/root/.m2 \
+    mvn -pl ehr-service -am clean package -DskipTests
 
 FROM eclipse-temurin:21-jre AS runner
 
