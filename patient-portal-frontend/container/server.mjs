@@ -3,15 +3,19 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "build");
+const root = process.env.BUILD_ROOT
+  ? path.resolve(process.env.BUILD_ROOT)
+  : path.join(path.dirname(fileURLToPath(import.meta.url)), "build");
 const port = Number.parseInt(process.env.PORT ?? "8080", 10);
 const gateway = new URL(
   process.env.API_GATEWAY_URL ?? "http://api-gateway:4004",
 );
 
 const securityHeaders = {
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Resource-Policy": "same-origin",
   "Content-Security-Policy":
-    "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self' data:; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'",
+    "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self' data:; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'",
   "Permissions-Policy": "camera=(), geolocation=(), microphone=()",
   "Referrer-Policy": "no-referrer",
   "X-Content-Type-Options": "nosniff",
@@ -53,8 +57,8 @@ function proxy(req, res) {
     },
     (upstreamResponse) => {
       res.writeHead(upstreamResponse.statusCode ?? 502, {
-        ...securityHeaders,
         ...upstreamResponse.headers,
+        ...securityHeaders,
       });
       upstreamResponse.pipe(res);
     },
@@ -129,22 +133,57 @@ const server = http.createServer(async (req, res) => {
     }
 
     const decodedPath = decodeURIComponent(pathname);
+    if (path.extname(decodedPath).toLowerCase() === ".map") {
+      send(
+        res,
+        404,
+        {
+          "Cache-Control": "no-store",
+          "Content-Type": "text/plain; charset=utf-8",
+        },
+        "Not found\n",
+      );
+      return;
+    }
     const requested = path.resolve(root, `.${decodedPath}`);
     const insideRoot =
       requested === root || requested.startsWith(`${root}${path.sep}`);
-    if (
-      insideRoot &&
-      path.extname(requested) &&
-      (await serveFile(
-        req,
+    if (insideRoot && path.extname(requested)) {
+      const immutable = /\.[a-f0-9]{8,}\./i.test(path.basename(requested));
+      if (
+        await serveFile(
+          req,
+          res,
+          requested,
+          immutable
+            ? "public, max-age=31536000, immutable"
+            : "no-cache",
+        )
+      )
+        return;
+      send(
         res,
-        requested,
-        "public, max-age=31536000, immutable",
-      ))
-    )
+        404,
+        {
+          "Cache-Control": "no-store",
+          "Content-Type": "text/plain; charset=utf-8",
+        },
+        "Not found\n",
+      );
       return;
+    }
 
-    await serveFile(req, res, path.join(root, "index.html"), "no-store");
+    if (!(await serveFile(req, res, path.join(root, "index.html"), "no-store"))) {
+      send(
+        res,
+        503,
+        {
+          "Cache-Control": "no-store",
+          "Content-Type": "text/plain; charset=utf-8",
+        },
+        "Frontend build unavailable\n",
+      );
+    }
   } catch {
     send(
       res,

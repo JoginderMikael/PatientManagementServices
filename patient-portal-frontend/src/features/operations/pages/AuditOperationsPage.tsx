@@ -1,6 +1,5 @@
 import { FormEvent, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../auth/AuthProvider";
 import { StatusBadge } from "../../../components/data/StatusBadge";
 import { Table } from "../../../components/data/Table";
@@ -17,25 +16,23 @@ import {
 } from "../components";
 export function AuditOperationsPage() {
   const { session } = useAuth();
-  const [params, setParams] = useSearchParams();
-  const patient = params.get("patientId") ?? "";
-  const actor = params.get("actorId") ?? "";
-  const [draft, setDraft] = useState({ patientId: patient, actorId: actor });
+  const [filters, setFilters] = useState({ patientId: "", actorId: "" });
+  const [draft, setDraft] = useState(filters);
   const events = useQuery({
-    queryKey: ["operations", "audit", patient, actor],
+    queryKey: ["operations", "audit", filters.patientId, filters.actorId],
     queryFn: ({ signal }) =>
-      listAuditEvents(patient, actor, session!.token, signal),
+      listAuditEvents(filters.patientId, filters.actorId, session!.token, signal),
   });
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    setParams(Object.fromEntries(Object.entries(draft).filter(([, v]) => v)));
+    setFilters(draft);
   };
   return (
     <div className="portal-stack">
       <PageHeader
         eyebrow="Specialized operations"
         title="Audit evidence"
-        description="Read append-only access and mutation evidence. Filters remain in the URL for reproducible review."
+        description="Read append-only access and mutation evidence. Sensitive filters remain only in memory for this view."
       />
       <Alert tone="info" title="Evidence is read-only">
         This screen intentionally has no create, edit, delete or export action.

@@ -25,8 +25,8 @@ export function SchedulePage() {
   const client = useQueryClient();
   const [params, setParams] = useSearchParams();
   const day = params.get("day") ?? new Date().toISOString().slice(0, 10);
-  const patientId = params.get("patientId") ?? "";
   const view = params.get("view") ?? "day";
+  const [patientId, setPatientId] = useState("");
   const [doctorId, setDoctorId] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [duration, setDuration] = useState(30);
@@ -84,7 +84,7 @@ export function SchedulePage() {
               <Select
                 required
                 value={patientId}
-                onChange={(e) => setParams({ day, patientId: e.target.value })}
+                onChange={(e) => setPatientId(e.target.value)}
               >
                 <option value="">Select patient</option>
                 {patients.data?.map((p) => (
@@ -163,7 +163,6 @@ export function SchedulePage() {
                 setParams({
                   view: e.target.value,
                   day,
-                  ...(patientId ? { patientId } : {}),
                 })
               }
             >
@@ -180,7 +179,6 @@ export function SchedulePage() {
                   setParams({
                     view,
                     day: e.target.value,
-                    ...(patientId ? { patientId } : {}),
                   })
                 }
               />

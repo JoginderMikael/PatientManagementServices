@@ -4,6 +4,7 @@ import './styles/tokens.css';
 import './styles/global.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { reportPerformanceMetric } from './telemetry/safeTelemetry';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -14,4 +15,4 @@ root.render(
   </React.StrictMode>
 );
 
-reportWebVitals();
+reportWebVitals(reportPerformanceMetric);

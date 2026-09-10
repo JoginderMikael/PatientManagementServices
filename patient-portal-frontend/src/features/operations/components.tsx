@@ -15,19 +15,9 @@ export const statusTone = (
   status: string,
 ): "neutral" | "info" | "success" | "warning" | "danger" => {
   if (
-    [
-      "ACTIVE",
-      "APPROVED",
-      "PAID",
-      "SENT",
-      "RECONCILED",
-      "CLOSED",
-      "VERIFIED",
-      "READY",
-      "DISPENSED",
-      "POSTED",
-      "SUCCESS",
-    ].includes(status)
+    ["ACTIVE", "APPROVED", "PAID", "SENT", "RECONCILED", "CLOSED"].includes(
+      status,
+    )
   )
     return "success";
   if (["DENIED", "FAILED", "REVOKED", "OVERDUE"].includes(status))

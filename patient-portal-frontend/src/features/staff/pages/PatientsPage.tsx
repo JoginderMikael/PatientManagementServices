@@ -25,10 +25,10 @@ export function PatientsPage() {
   const { session } = useAuth();
   const client = useQueryClient();
   const [params, setParams] = useSearchParams();
-  const term = params.get("q") ?? "";
   const status = params.get("status") ?? "ALL";
   const attempt = useRef<{ signature: string; key: string } | null>(null);
-  const [draft, setDraft] = useState(term);
+  const [term, setTerm] = useState("");
+  const [draft, setDraft] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState(blank);
   const [duplicateTerm, setDuplicateTerm] = useState("");
@@ -203,10 +203,7 @@ export function PatientsPage() {
           className="toolbar"
           onSubmit={(e) => {
             e.preventDefault();
-            setParams({
-              ...(draft ? { q: draft } : {}),
-              ...(status !== "ALL" ? { status } : {}),
-            });
+            setTerm(draft);
           }}
         >
           <Field id="patient-search" label="Name, MRN, phone or email">
@@ -221,12 +218,7 @@ export function PatientsPage() {
               className="select-input"
               value={status}
               onChange={(e) =>
-                setParams({
-                  ...(term ? { q: term } : {}),
-                  ...(e.target.value !== "ALL"
-                    ? { status: e.target.value }
-                    : {}),
-                })
+                setParams(e.target.value !== "ALL" ? { status: e.target.value } : {})
               }
             >
               <option value="ALL">All statuses</option>

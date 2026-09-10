@@ -25,6 +25,9 @@
     "dev": "react-scripts start",
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:release": "node scripts/build-release.mjs && node scripts/check-release-build.mjs && node scripts/verify-runtime.mjs",
+    "contract:check": "node scripts/check-api-contract.mjs",
+    "release:verify": "npm run typecheck && npm run test:ci && npm run build:release",
     "test": "react-scripts test",
     "test:ci": "react-scripts test --watchAll=false",
     "typecheck": "tsc --noEmit",
@@ -38,8 +41,11 @@
   },
   "browserslist": {
     "production": [
-      ">0.2%",
-      "not dead",
+      "last 2 Chrome versions",
+      "last 2 Edge versions",
+      "last 2 Firefox versions",
+      "last 2 Safari versions",
+      "last 2 ios_saf versions",
       "not op_mini all"
     ],
     "development": [

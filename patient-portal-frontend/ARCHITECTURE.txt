@@ -742,6 +742,9 @@ Known Phase 4 boundaries:
 
 PHASE 5 - INTEGRATION, HARDENING AND RELEASE
 
+Implementation status: engineering controls implemented on 2026-09-11; named
+deployment approvals and the external dependency advisory scan remain open.
+
 Scope:
 
   1. Run one synthetic end-to-end journey per role family plus cross-role and
@@ -753,6 +756,38 @@ Scope:
   4. Diff generated API contracts against the deployed backend revision, update
      fixtures and resolve or document drift.
   5. Obtain the named privacy, security and release approvals required by policy.
+
+Implemented engineering controls:
+
+  - `src/release/releaseGate.test.tsx` exercises patient, clinical, registration,
+    revenue, pharmacy, privacy, audit and analytics role families at reference
+    widths from 320px through desktop. It also verifies cross-role denial and that
+    the patient portal uses only the token-bound `/api/portal/me` contract.
+  - Existing keyboard tests cover the mobile menu, tabs, Escape-to-close and focus
+    return. The release journeys run axe against every role-family surface.
+  - `src/telemetry/safeTelemetry.ts` emits only allowlisted technical fields,
+    replaces patient route identifiers with templates, strips query strings and
+    never accepts arbitrary errors, bodies, form values, emails or tokens.
+  - The production server enforces CSP, frame denial, MIME sniffing prevention,
+    referrer/permissions and cross-origin isolation headers. HTML and missing files
+    are no-store, unhashed public files revalidate, and hashed assets are immutable.
+  - `npm run build:release` disables source maps, enforces gzip budgets of 190 KiB
+    JavaScript and 32 KiB CSS, validates content hashes, and probes the built runtime
+    headers/cache behavior. CI executes this exact gate.
+  - `npm run contract:check` compares the browser-required operations in
+    `contracts/frontend-api-contract.json` with all 12 deployed gateway OpenAPI
+    documents. A protected environment requires a short-lived ADMIN API_TOKEN.
+  - `RELEASE_READINESS.txt` is the durable evidence record, browser/device manual
+    matrix and named privacy, security and release approval form.
+
+Open release gates:
+
+  - Execute critical journeys and cross-patient denial against the candidate
+    deployment, not only the synthetic browser fixtures.
+  - Run the authorized dependency and built-image vulnerability scans. Dependency
+    metadata must not be sent to a public advisory service without approval.
+  - Complete manual keyboard/screen-reader and supported real-browser/device checks.
+  - Obtain the named independent approvals in `RELEASE_READINESS.txt`.
 
 Exit gate:
 

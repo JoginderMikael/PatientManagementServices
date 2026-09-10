@@ -10,6 +10,8 @@ RUN --mount=type=cache,id=patient-management-npm,target=/root/.npm \
 
 COPY public ./public
 COPY src ./src
+COPY scripts ./scripts
+COPY container ./container
 COPY tsconfig.json ./
 
 # An empty value makes browser API requests same-origin. The runtime server then
@@ -17,7 +19,7 @@ COPY tsconfig.json ./
 ARG REACT_APP_API_BASE_URL=
 ENV REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
 
-RUN npm run build
+RUN npm run build:release
 
 FROM node:22-alpine AS runtime
 

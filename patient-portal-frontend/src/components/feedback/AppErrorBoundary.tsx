@@ -1,4 +1,5 @@
 import React from "react";
+import { reportRenderError } from "../../telemetry/safeTelemetry";
 import { ErrorState } from "./ErrorState";
 
 interface State {
@@ -13,6 +14,10 @@ export class AppErrorBoundary extends React.Component<
 
   static getDerivedStateFromError(): State {
     return { hasError: true };
+  }
+
+  componentDidCatch(): void {
+    reportRenderError();
   }
 
   render() {

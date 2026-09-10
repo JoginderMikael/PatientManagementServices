@@ -33,19 +33,20 @@ export function InsuranceOperationsPage() {
   const refresh = () =>
     client.invalidateQueries({ queryKey: ["operations", "insurance"] });
   const action = useMutation({
-    mutationFn: async (v: {
+    mutationFn: (v: {
       id: string;
       action: "approve" | "deny" | "reconcile";
       amount: number;
     }) => {
-      if (v.action === "reconcile") await reconcileClaim(v.id, session!.token);
-      else
-        await adjudicateClaim(
-          v.id,
-          v.action === "approve" ? "APPROVED" : "DENIED",
-          v.action === "approve" ? v.amount : 0,
-          session!.token,
-        );
+      const request = v.action === "reconcile"
+        ? reconcileClaim(v.id, session!.token)
+        : adjudicateClaim(
+            v.id,
+            v.action === "approve" ? "APPROVED" : "DENIED",
+            v.action === "approve" ? v.amount : 0,
+            session!.token,
+          );
+      return request.then(() => undefined);
     },
     onSuccess: refresh,
     onError: refresh,

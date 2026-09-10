@@ -71,35 +71,34 @@ export function ComplianceOperationsPage() {
   const refresh = () =>
     client.invalidateQueries({ queryKey: ["operations", "compliance"] });
   const mutation = useMutation({
-    mutationFn: async (action: {
+    mutationFn: (action: {
       kind: "create" | "transition" | "hold" | "review";
       record?: ComplianceCase;
       id?: string;
     }) => {
       if (action.kind === "create")
-        await createComplianceCase(
+        return createComplianceCase(
           { ...create, dueAt: new Date(create.dueAt).toISOString() },
           session!.token,
-        );
-      else if (action.kind === "review")
-        await reviewEmergencyGrant(action.id!, evidence, session!.token);
-      else if (action.kind === "hold")
-        await setComplianceHold(
+        ).then(() => undefined);
+      if (action.kind === "review")
+        return reviewEmergencyGrant(action.id!, evidence, session!.token);
+      if (action.kind === "hold")
+        return setComplianceHold(
           action.record!.id,
           !action.record!.legalHold,
           evidence,
           session!.token,
         );
-      else
-        await transitionComplianceCase(
-          action.record!.id,
-          {
-            expectedStatus: action.record!.status,
-            status: nextStatus(action.record!)!,
-            evidenceReference: evidence,
-          },
-          session!.token,
-        );
+      return transitionComplianceCase(
+        action.record!.id,
+        {
+          expectedStatus: action.record!.status,
+          status: nextStatus(action.record!)!,
+          evidenceReference: evidence,
+        },
+        session!.token,
+      );
     },
     onSuccess: () => {
       setEvidence("");
@@ -187,10 +186,8 @@ export function ComplianceOperationsPage() {
           <Field
             id="case-action-evidence"
             label="Evidence reference for next action"
-            required
           >
             <TextField
-              required
               maxLength={200}
               value={evidence}
               onChange={(e) => setEvidence(e.target.value)}
@@ -242,7 +239,6 @@ export function ComplianceOperationsPage() {
                           title="Transition compliance case"
                           description={`Move ${c.kind} case ${c.id} from ${c.status} to ${next}. Evidence is required and stale state is rejected.`}
                           confirmLabel="Confirm transition"
-                          disabled={!evidence || mutation.isPending}
                           onConfirm={() =>
                             mutation.mutate({ kind: "transition", record: c })
                           }
@@ -262,7 +258,6 @@ export function ComplianceOperationsPage() {
                           c.legalHold ? "Release hold" : "Enable hold"
                         }
                         danger={c.legalHold}
-                        disabled={!evidence || mutation.isPending}
                         onConfirm={() =>
                           mutation.mutate({ kind: "hold", record: c })
                         }
@@ -302,7 +297,6 @@ export function ComplianceOperationsPage() {
                     description={`Review grant ${r.id} independently and revoke it. Supply the review evidence reference above.`}
                     confirmLabel="Complete review"
                     danger
-                    disabled={!evidence || mutation.isPending}
                     onConfirm={() =>
                       mutation.mutate({ kind: "review", id: r.id })
                     }

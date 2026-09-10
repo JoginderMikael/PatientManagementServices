@@ -1,0 +1,133 @@
+{
+  "services": [
+    {
+      "name": "auth",
+      "document": "/auth-v3-api-docs",
+      "operations": ["POST /login", "GET /validate"]
+    },
+    {
+      "name": "patient",
+      "document": "/patient-v3-api-docs",
+      "operations": [
+        "GET /patients",
+        "POST /patients",
+        "GET /patients/{id}",
+        "PUT /patients/{id}",
+        "GET /patients/duplicates",
+        "POST /patients/{id}/status/{status}"
+      ]
+    },
+    {
+      "name": "billing",
+      "document": "/billing-v3-api-docs",
+      "operations": [
+        "GET /billing/accounts",
+        "POST /billing/accounts",
+        "POST /billing/invoices",
+        "GET /billing/invoices/patient/{id}",
+        "POST /billing/invoices/{id}/postings"
+      ]
+    },
+    {
+      "name": "analytics",
+      "document": "/analytics-v3-api-docs",
+      "operations": [
+        "GET /analytics/health-trends",
+        "GET /analytics/chronic-disease-cohorts",
+        "GET /analytics/regulatory-reports",
+        "POST /analytics/regulatory-reports"
+      ]
+    },
+    {
+      "name": "appointment",
+      "document": "/appointment-v3-api-docs",
+      "operations": [
+        "GET /appointments",
+        "POST /appointments",
+        "GET /appointments/schedules"
+      ]
+    },
+    {
+      "name": "ehr",
+      "document": "/ehr-v3-api-docs",
+      "operations": [
+        "GET /ehr/encounters/{patientId}",
+        "GET /ehr/histories/{patientId}",
+        "GET /ehr/diagnoses/{patientId}",
+        "GET /ehr/prescriptions/{patientId}",
+        "GET /ehr/lab-results/{patientId}",
+        "GET /ehr/notes/{patientId}",
+        "GET /ehr/vaccinations/{patientId}",
+        "GET /ehr/safety/alerts/patient/{id}",
+        "POST /ehr/notes/{id}/sign",
+        "POST /ehr/safety/prescriptions/{id}/discontinue",
+        "POST /ehr/safety/alerts/{id}/acknowledge"
+      ]
+    },
+    {
+      "name": "insurance",
+      "document": "/insurance-v3-api-docs",
+      "operations": [
+        "GET /insurance/claims",
+        "GET /insurance/coverage-verifications",
+        "POST /insurance/claims/{id}/adjudicate",
+        "POST /insurance/claims/{id}/reconcile"
+      ]
+    },
+    {
+      "name": "notification",
+      "document": "/notification-v3-api-docs",
+      "operations": ["GET /notifications", "POST /notifications"]
+    },
+    {
+      "name": "inventory-pharmacy",
+      "document": "/inventory-pharmacy-v3-api-docs",
+      "operations": [
+        "GET /inventory-pharmacy/medications",
+        "GET /inventory-pharmacy/supplies",
+        "POST /inventory-pharmacy/supplies",
+        "GET /inventory-pharmacy/medication-charges",
+        "POST /inventory-pharmacy/prescriptions/{id}/review",
+        "POST /inventory-pharmacy/prescriptions/{id}/dispense",
+        "POST /inventory-pharmacy/batches"
+      ]
+    },
+    {
+      "name": "audit-compliance",
+      "document": "/audit-compliance-v3-api-docs",
+      "operations": [
+        "GET /compliance/privacy/break-glass/reviews",
+        "POST /compliance/privacy/break-glass/{id}/review",
+        "GET /compliance/cases",
+        "POST /compliance/cases",
+        "POST /compliance/cases/{id}/transitions",
+        "POST /compliance/cases/{id}/hold",
+        "GET /audit/events"
+      ]
+    },
+    {
+      "name": "patient-portal",
+      "document": "/patient-portal-v3-api-docs",
+      "operations": [
+        "GET /portal/me",
+        "POST /portal/appointment-requests",
+        "POST /portal/appointment-requests/{id}/cancel",
+        "POST /portal/record-requests",
+        "GET /portal/record-requests/{id}/download",
+        "POST /portal/payments"
+      ]
+    },
+    {
+      "name": "staff-dashboard",
+      "document": "/staff-dashboard-v3-api-docs",
+      "operations": [
+        "GET /staff-dashboard/queues/{role}",
+        "POST /staff-dashboard/tasks/{id}/claim",
+        "POST /staff-dashboard/tasks/{id}/complete",
+        "POST /staff-dashboard/tasks/{id}/handoff",
+        "POST /staff-dashboard/tasks/{id}/comments",
+        "GET /staff-dashboard/tasks/{id}/history"
+      ]
+    }
+  ]
+}

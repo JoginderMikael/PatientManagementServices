@@ -32,11 +32,22 @@ jobs:
       - name: Typecheck frontend
         run: npm run typecheck
 
+      - name: Verify installed production dependency tree
+        run: npm ls --omit=dev
+
       - name: Test frontend
         run: npm run test:ci
 
-      - name: Build frontend
-        run: npm run build
+      - name: Build and harden frontend release artifact
+        run: npm run build:release
+
+      - name: Upload frontend release evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-release-artifact
+          path: |
+            patient-portal-frontend/build/asset-manifest.json
+            patient-portal-frontend/RELEASE_READINESS.txt
 
   maven-build:
     runs-on: ubuntu-latest

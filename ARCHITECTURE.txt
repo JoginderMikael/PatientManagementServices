@@ -187,3 +187,21 @@ PRIMARY API CONTRACTS CHANGED ON 2026-09-10
 See patient-portal-frontend/API.txt for the full browser-facing endpoint catalog
 and PATIENT_IDENTITY_AND_PROVISIONING_REVIEW.txt for the discovery record,
 remaining target workflow, reconciliation rules, and acceptance criteria.
+
+
+FRONTEND RELEASE HARDENING ADDED ON 2026-09-11
+----------------------------------------------
+
+The Phase 5 frontend gate is implemented under patient-portal-frontend. Production
+builds disable source maps, enforce gzip budgets, and are served with verified CSP,
+cross-origin, frame, MIME, referrer, permissions and cache controls. Browser
+telemetry accepts only allowlisted technical fields and replaces patient IDs with
+route templates. Synthetic release tests cover every role family, cross-role
+denials, responsive reference widths, accessibility and token-bound patient self
+scope. The frontend-required API surface is checked against the 12 OpenAPI exports
+served through the gateway with `npm run contract:check`.
+
+These controls establish an engineering release gate; they do not grant production
+approval. Integrated cross-patient checks, authorized dependency/image scanning,
+real browser/device review and the named privacy, security and release signatures
+remain recorded in patient-portal-frontend/RELEASE_READINESS.txt.

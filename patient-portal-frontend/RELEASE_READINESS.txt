@@ -1,0 +1,72 @@
+PATIENT PORTAL FRONTEND - RELEASE READINESS RECORD
+==================================================
+
+Status vocabulary
+-----------------
+IMPLEMENTED means the control exists. VERIFIED LOCALLY means its named automated
+check passed in a developer workspace. RELEASE CANDIDATE requires every automated
+gate below plus the integrated deployment checks. PRODUCTION APPROVED requires all
+three named approvals at the end of this record.
+
+Automated engineering gate
+--------------------------
+Run from patient-portal-frontend:
+
+  npm ci --no-audit --no-fund
+  npm run release:verify
+  npm run contract:check
+  npm audit --omit=dev --audit-level=high
+
+Run the public advisory query only from an organization-approved network/CI context;
+it transmits dependency names and versions to the configured npm registry.
+
+release:verify performs strict TypeScript checking, all synthetic component and
+integration tests, axe checks across every role family and 320-1440px reference
+widths, a production build, gzip bundle budgets, source-map rejection, and a live
+runtime check of CSP/security/cache headers.
+
+contract:check reads contracts/frontend-api-contract.json and verifies every API
+operation required by the frontend against the deployed gateway OpenAPI exports.
+Set API_BASE_URL for a non-local gateway. If API documentation is protected, set a
+short-lived ADMIN API_TOKEN in the process environment; never put it in this file.
+
+Manual integrated deployment evidence
+-------------------------------------
+Record the deployment revision and evidence location. Use synthetic identities and
+data only. Do not paste tokens, patient identifiers, response bodies, screenshots
+containing PHI, or security findings here.
+
+  Frontend revision: ____________________
+  Backend revision:  ____________________
+  Environment:       ____________________
+  Evidence link:     ____________________
+  Date/time (UTC):   ____________________
+
+Confirm:
+
+  [ ] Patient, clinical, registration, revenue, pharmacy, privacy, audit and
+      analytics critical journeys pass through the deployed gateway.
+  [ ] Cross-role and cross-patient requests return 403 without leaking resource
+      existence or clearing a valid session.
+  [ ] Keyboard-only login, navigation, forms, dialogs, tables and error recovery
+      pass; screen-reader names/status announcements are understandable.
+  [ ] Chrome, Edge, Firefox and Safari current major versions pass on desktop;
+      Safari iOS and Chrome Android pass at 320px and larger without clipped actions.
+  [ ] Record downloads retain attachment and Cache-Control: no-store headers.
+  [ ] Dependency and built-image scans have no unresolved severity-one finding.
+  [ ] Browser telemetry contains only an allowlisted route template, metric/event
+      name, status and numeric value; no token, identifier, email, body or query.
+  [ ] No unresolved severity-one safety, privacy, security or accessibility defect.
+
+Named approvals (required for PRODUCTION APPROVED)
+--------------------------------------------------
+Each approver must be a person authorized by the organization. Engineering must not
+self-certify these fields on their behalf.
+
+  Privacy approver / decision / date:  __________________________________________
+  Security approver / decision / date: __________________________________________
+  Release authority / decision / date: __________________________________________
+
+Open exceptions and expiry
+--------------------------
+  None, or reference approved exception IDs here: ________________________________

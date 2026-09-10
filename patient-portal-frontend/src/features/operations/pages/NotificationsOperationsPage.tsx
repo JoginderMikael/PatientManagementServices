@@ -1,6 +1,5 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../auth/AuthProvider";
 import { Button } from "../../../components/Button";
 import { StatusBadge } from "../../../components/data/StatusBadge";
@@ -24,9 +23,8 @@ import {
 export function NotificationsOperationsPage() {
   const { session } = useAuth();
   const client = useQueryClient();
-  const [params, setParams] = useSearchParams();
-  const recipient = params.get("recipientId") ?? "";
-  const [filter, setFilter] = useState(recipient);
+  const [recipient, setRecipient] = useState("");
+  const [filter, setFilter] = useState("");
   const [form, setForm] = useState({
     recipientId: "",
     channel: "EMAIL",
@@ -132,7 +130,7 @@ export function NotificationsOperationsPage() {
           className="toolbar"
           onSubmit={(e) => {
             e.preventDefault();
-            setParams(filter ? { recipientId: filter } : {});
+            setRecipient(filter);
           }}
         >
           <Field id="notification-filter" label="Recipient UUID">

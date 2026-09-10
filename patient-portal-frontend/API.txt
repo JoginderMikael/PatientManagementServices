@@ -83,6 +83,14 @@ Local Swagger sources:
   /patient-portal-v3-api-docs
   /staff-dashboard-v3-api-docs
 
+Release contract verification:
+
+  `npm run contract:check` verifies all frontend-required method/path contracts in
+  `contracts/frontend-api-contract.json` against these 12 deployed documents.
+  Set API_BASE_URL when the gateway is not http://localhost:4004. Protected
+  environments require a short-lived ADMIN API_TOKEN supplied through the process
+  environment; never store that token in this file or the repository.
+
 2. REQUEST AND RESPONSE SHAPES
 ------------------------------
 
