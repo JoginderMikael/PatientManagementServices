@@ -17,26 +17,32 @@ public class PortalWorkflowService {
   private final JdbcTemplate jdbc;
   private final PortalAccess access;
   private final PatientPortalRepository repository;
+  private final IdentityDirectoryClient identities;
 
   public PortalWorkflowService(
       JdbcTemplate jdbc,
       PortalAccess access,
       PatientPortalRepository repository,
-      git.jogindermikael.patientportalservice.integration.WorkflowClient downstream) {
+      git.jogindermikael.patientportalservice.integration.WorkflowClient downstream,
+      IdentityDirectoryClient identities) {
     this.downstream = downstream;
     this.jdbc = jdbc;
     this.access = access;
     this.repository = repository;
+    this.identities = identities;
   }
 
   public record Identity(@NotBlank @Size(max = 200) String subject, @NotNull UUID patientId) {
   }
 
   public void bind(Identity c) {
-    repository.lock();
     if (!access.admin())
       throw new org.springframework.security.access.AccessDeniedException("Admin required");
-    jdbc.update("INSERT INTO portal_identity VALUES (?,?)", c.subject(), c.patientId());
+    identities.validatePatientIdentity(c.subject(), c.patientId());
+    repository.lock();
+    jdbc.update(
+        "INSERT INTO portal_identity(subject,patient_id,status,patient_status) VALUES (?,?,?,?)",
+        c.subject(), c.patientId(), "ACTIVE", "ACTIVE");
     access.history(c.patientId(), "IDENTITY_BOUND");
   }
 

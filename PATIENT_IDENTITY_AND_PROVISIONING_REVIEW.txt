@@ -1,0 +1,571 @@
+PATIENT IDENTITY, USER PROVISIONING, AND CROSS-SERVICE CONSISTENCY REVIEW
+===============================================================================
+
+Review date: 2026-09-10
+
+Reading note: the IMPLEMENTATION STATUS UPDATE is authoritative for the code as
+it stands now. The detailed VERIFIED CURRENT BEHAVIOR and CURRENT CONSISTENCY
+GUARANTEES sections below preserve the pre-implementation baseline that led to
+the recommendations; they are historical findings, not the current runtime
+contract. See ARCHITECTURE.txt for the concise current architecture.
+
+IMPLEMENTATION STATUS UPDATE - 2026-09-10
+-------------------------------------------------------------------------------
+
+Implemented from this review:
+
+- ADMIN-only auth user creation, lookup, role changes, and account-status changes;
+- auth lifecycle states and rejection of login for non-ACTIVE accounts;
+- server-owned GET /api/portal/me identity resolution;
+- removal of the frontend subject-as-patient-ID fallback;
+- ADMIN-only legacy patient-specific overview access;
+- auth-user and patient existence/status validation before portal binding;
+- portal and projected-patient lifecycle fields on portal_identity;
+- patient lifecycle event consumption by patient-portal-service;
+- coherent synthetic patient records for the development PATIENT accounts; and
+- backend and frontend tests for the new behavior.
+
+Still recommended and not represented as complete:
+
+- single-use portal invitations, identity proofing, and MFA activation;
+- a durable provisioning saga and operator-facing provisioning state;
+- dead-letter/replay and scheduled cross-service reconciliation;
+- patient existence enforcement in every patient-referencing service; and
+- a patient-safe demographic/clinical profile projection.
+
+PURPOSE
+-------------------------------------------------------------------------------
+
+This document records the verified behavior of patient registration, user
+authentication, patient portal identity binding, and downstream service
+integration. It also proposes the workflow required to ensure that a patient
+who is allowed to log in is linked to a real patient record and that partial
+failures do not leave the platform in an unknown state.
+
+
+EXECUTIVE SUMMARY OF THE ORIGINAL GAP
+-------------------------------------------------------------------------------
+
+The application service boundaries treat an authentication user, a clinical patient, and
+a portal identity as three independent records:
+
+1. auth-service owns login credentials, roles, and the auth user UUID.
+2. patient-service owns the clinical patient record, MRN, and patient UUID.
+3. patient-portal-service owns the mapping from an auth subject to a patient
+   UUID in portal_identity.
+
+These records are not currently created through one coordinated workflow.
+Creating a clinical patient does not create a login account or portal binding.
+Creating an auth user does not create or validate a clinical patient. Before the
+2026-09-10 implementation, a portal binding could be created without checking
+that its patient UUID existed in patient-service.
+
+The original running development databases confirmed this gap. Two PATIENT users and
+two matching portal_identity rows exist, but patient-service contains no
+patients with either of the mapped UUIDs. Despite that, the portal overview
+returns HTTP 200 and reports accountStatus ACTIVE because that status is
+currently hard-coded and the overview does not call patient-service.
+
+That baseline proved an authenticated account was not proof of a valid patient
+record. The implemented validation and server-owned /portal/me flow now close
+that specific access gap, while patient registration intentionally remains
+separate from login-account provisioning.
+
+
+VERIFIED BASELINE BEHAVIOR (BEFORE THE 2026-09-10 IMPLEMENTATION)
+-------------------------------------------------------------------------------
+
+1. Authentication
+
+- POST /auth/login authenticates an email and password stored in auth-service.
+- A successful login produces a JWT.
+- The JWT subject (sub) is the auth user UUID.
+- The token includes user_id, email, role, roles, and scope.
+- The token does not currently include a patient_id claim.
+- Authentication verifies credentials only. It does not verify that a PATIENT
+  user has a patient-service record or a portal identity binding.
+- There is no enabled/disabled, invited, pending, or locked account lifecycle
+  in the current users table.
+
+Relevant implementation:
+
+- auth-service/.../controller/AuthController.java
+- auth-service/.../service/AuthService.java
+- auth-service/.../util/JwtUtil.java
+- auth-service/.../model/User.java
+
+
+2. Who can create a patient
+
+POST /api/patients is protected by the patient-service controller-level rule:
+
+    hasAnyRole('ADMIN', 'CLINICIAN', 'REGISTRATION_STAFF')
+
+The same three roles are allowed to open the Patient Registry frontend route.
+Consequently, ADMIN, CLINICIAN, and REGISTRATION_STAFF can currently register a
+patient. Whether CLINICIAN should retain this permission is a business-policy
+decision; a stricter production policy would normally use ADMIN and
+REGISTRATION_STAFF only.
+
+Relevant implementation:
+
+- patient-service/.../controller/PatientController.java
+- patient-portal-frontend/src/app/routePolicy.ts
+- patient-portal-frontend/src/features/staff/pages/PatientsPage.tsx
+
+
+3. What patient registration creates
+
+Patient registration currently:
+
+- creates one patient row in patient-service;
+- generates an MRN;
+- sets the patient lifecycle status to ACTIVE;
+- rejects an already-used patient email;
+- supports an optional registration idempotency key;
+- writes PATIENT_REGISTERED to the patient-service transactional outbox; and
+- publishes the event asynchronously to patient.events.v1.
+
+The patient row and outbox row are written within the patient-service database
+transaction. This protects against the patient being committed without its
+integration event being recorded.
+
+The event currently has these effects:
+
+- billing-service creates one idempotent billing account for the patient;
+- audit-compliance-service records the integration event; and
+- analytics-service receives and logs the event.
+
+Patient registration does NOT currently create:
+
+- an auth-service user;
+- a password or activation invitation;
+- the PATIENT role;
+- a portal_identity mapping;
+- an EHR record;
+- an appointment record;
+- an insurance policy; or
+- records in every other patient-referencing service.
+
+Relevant implementation:
+
+- patient-service/.../service/PatientService.java
+- patient-service/.../service/PatientOutboxService.java
+- patient-service/.../service/PatientOutboxPublisher.java
+- billing-service/.../kafka/PatientRegisteredConsumer.java
+- audit-compliance-service/.../kafka/AutomaticAuditConsumer.java
+- analytics-service/.../kafka/KafkaConsumer.java
+- docs/event-schemas.md
+
+
+4. Who can create system users
+
+No application role can currently create an auth user through a supported API.
+AuthController exposes only login and token validation. There is no user
+administration, patient signup, invitation, activation, password reset, or role
+assignment endpoint.
+
+Development users are inserted by Flyway seed migrations. Without additional
+implementation, production users would require direct database administration,
+which is not an acceptable operational user-management workflow.
+
+This limitation applies to patient and workforce accounts, including ADMIN,
+CLINICIAN, NURSE, REGISTRATION_STAFF, RECEPTIONIST, BILLING_STAFF, PHARMACIST,
+LAB_STAFF, PRIVACY_OFFICER, AUDITOR, and ANALYST.
+
+
+5. Patient portal identity and access
+
+The frontend currently determines a patient ID by using a patient_id token
+claim when present and otherwise falling back to the JWT subject. Since the
+auth-service does not issue patient_id, PATIENT users currently fall back to
+their auth user UUID.
+
+patient-portal-service authorizes access by looking for this mapping:
+
+    portal_identity(subject, patient_id)
+
+The backend ownership check is useful because it prevents one patient from
+selecting another mapped patient UUID. However, creation of portal_identity:
+
+- is an ADMIN-only endpoint;
+- accepts a subject and patient UUID supplied by the caller;
+- does not verify the subject with auth-service;
+- does not verify the patient UUID with patient-service; and
+- cannot use a database foreign key because the patient is in another service's
+  database.
+
+If an auth user has no portal binding, login still succeeds, but portal access
+is denied with HTTP 403. If the binding exists but the patient record does not,
+the portal currently accepts the binding and returns an overview.
+
+The portal overview contains portal-local appointment requests, record release
+requests, and payment submissions. It does not retrieve demographics or a
+clinical patient record from patient-service. Its ACTIVE account status is
+currently a constant rather than the patient lifecycle status.
+
+PATIENT users also cannot call the ordinary patient-service /patients endpoints
+or the current FHIR Patient endpoint because those controllers do not authorize
+the PATIENT role.
+
+Relevant implementation:
+
+- patient-portal-frontend/src/auth/tokenClaims.ts
+- patient-portal-frontend/src/features/patientPortal/portalState.tsx
+- patient-portal-service/.../service/PortalAccess.java
+- patient-portal-service/.../service/PortalWorkflowService.java
+- patient-portal-service/.../service/PatientPortalService.java
+- patient-service/.../controller/PatientController.java
+- patient-service/.../controller/FhirPatientController.java
+
+
+6. Verified development-data inconsistency
+
+The running databases contained these auth users:
+
+    10000000-0000-4000-8000-000000000003  patient.one@example.test
+    10000000-0000-4000-8000-000000000004  patient.two@example.test
+
+patient-portal-service mapped both auth subjects to patient IDs with the same
+UUID values. patient-service contained zero patient rows for those two UUIDs.
+
+A real login followed by this request:
+
+    GET /api/portal/patients/10000000-0000-4000-8000-000000000003/overview
+
+returned HTTP 200 with accountStatus ACTIVE. This demonstrates that the missing
+patient-service record is not currently detected.
+
+The inconsistency is also visible in the development migrations:
+
+- auth-service seeds PATIENT auth UUIDs beginning with 10000000.
+- patient-portal-service binds those same 10000000 UUIDs.
+- patient-service seeds a different set of patient UUIDs beginning with
+  123e4567 and 223e4567.
+
+
+BASELINE CONSISTENCY GUARANTEES AND LIMITATIONS
+-------------------------------------------------------------------------------
+
+What is protected:
+
+- Patient data and its outbox event are committed in one local transaction.
+- Patient email is unique within patient-service.
+- Registration keys make deliberate patient-creation retries idempotent.
+- Billing account creation is idempotent by patient ID and event key.
+- The audit consumer uses event identity to avoid duplicate audit persistence.
+- JWT signatures, issuer, audience, expiry, and roles are validated by services.
+- Portal ownership prevents a mapped patient account from reading a different
+  mapped patient's portal-local activity.
+
+What is not protected:
+
+- There is no transaction covering auth, patient, portal, and billing databases.
+- No workflow guarantees that all required identity records are provisioned.
+- No service validates portal bindings against both auth-service and
+  patient-service.
+- Other services commonly store a patient UUID without a cross-service foreign
+  key or live existence check.
+- Not every service consumes patient lifecycle events.
+- Patient merge, archive, or status changes are not consistently projected into
+  all downstream services.
+- Eventual-consistency failures are not exposed as a provisioning status to an
+  operator or patient.
+- The outbox publisher retries only a bounded number of attempts and there is no
+  complete dead-letter/replay and reconciliation workflow visible in the
+  current implementation.
+- Development seed data does not represent a coherent end-to-end patient.
+
+
+RECOMMENDED TARGET MODEL
+-------------------------------------------------------------------------------
+
+Keep the bounded contexts separate and use explicit identifiers:
+
+- authUserId: identifies credentials and the human login in auth-service.
+- patientId: identifies the clinical patient/MPI record in patient-service.
+- portal identity: explicitly maps authUserId to patientId.
+
+Do not assume authUserId equals patientId. They represent different concepts and
+may have different lifecycles. Do not use matching UUID values as an implicit
+relationship.
+
+The authoritative ownership should be:
+
+- auth-service: credentials, authentication factors, account state, roles,
+  sessions, password reset, and token issuance.
+- patient-service: MPI identity, MRN, demographics, duplicate resolution,
+  lifecycle state, merge survivor, and archive status.
+- patient-portal-service (or a dedicated identity-link service): verified
+  authUserId-to-patientId relationships, portal activation state, proxy grants,
+  and portal access decisions.
+
+A portal identity should have an explicit lifecycle, for example:
+
+    PENDING_VERIFICATION
+    ACTIVE
+    SUSPENDED
+    FAILED
+    REVOKED
+
+An auth account should likewise have a lifecycle, for example:
+
+    INVITED
+    ACTIVE
+    LOCKED
+    DISABLED
+
+
+RECOMMENDED ENDPOINTS
+-------------------------------------------------------------------------------
+
+Patient and portal enrollment:
+
+    POST /api/patients
+        Creates the clinical patient only.
+
+    POST /api/patients/{patientId}/portal-invitations
+        ADMIN or REGISTRATION_STAFF requests portal enrollment.
+
+    POST /auth/invitations/{token}/activate
+        Patient verifies the invitation and establishes credentials/MFA.
+
+    GET /api/portal/me
+        Resolves the patient server-side from the JWT subject. The client must
+        not select its own patient ID for ordinary owner access.
+
+    GET /api/portal/me/profile
+        Returns a patient-safe projection fetched from patient-service after
+        lifecycle and authorization checks.
+
+Workforce identity administration:
+
+    POST /auth/admin/users
+    PATCH /auth/admin/users/{userId}/roles
+    POST /auth/admin/users/{userId}/disable
+    POST /auth/admin/users/{userId}/unlock
+
+These endpoints should require ADMIN or a dedicated IDENTITY_ADMIN role. Role
+changes, account disablement, and credential events must be audited. A user must
+not be allowed to grant a role equal to or more privileged than their own unless
+the authorization policy explicitly permits it.
+
+Internal validation endpoints should use service credentials, not a patient or
+administrator's bearer token:
+
+    GET /internal/patients/{patientId}/existence
+    GET /internal/users/{authUserId}/existence
+
+Responses should expose only the minimum necessary state, such as identifier,
+lifecycle status, and merge-survivor ID.
+
+
+RECOMMENDED PATIENT REGISTRATION AND PORTAL-ENROLLMENT WORKFLOW
+-------------------------------------------------------------------------------
+
+Not every clinical patient necessarily needs an online account. Registration
+and portal enrollment should therefore be related but distinct operations.
+
+Phase A - Register the clinical patient
+
+1. ADMIN or REGISTRATION_STAFF submits patient demographics with an
+   Idempotency-Key.
+2. patient-service performs duplicate detection and operator confirmation.
+3. patient-service creates the patient, MRN, ACTIVE lifecycle state, and outbox
+   event in one transaction.
+4. patient-service returns patientId and registration status.
+5. Billing and other legitimate projections consume PATIENT_REGISTERED
+   idempotently.
+
+At this point the person is a registered clinical patient but cannot log in.
+
+Phase B - Invite the patient to the portal
+
+1. An authorized operator selects "Enable portal access" for the patient.
+2. The enrollment orchestrator verifies that patientId exists, is not merged or
+   archived, and is eligible for portal access.
+3. It starts a provisioning record with a durable correlation ID and status
+   PENDING_VERIFICATION.
+4. auth-service creates or reuses an INVITED account for the verified contact
+   address. The operation must be idempotent.
+5. An invitation with a short-lived, single-use token is sent through the
+   notification service. No temporary password should be emailed.
+6. The patient verifies the invitation, chooses a password, enrolls MFA where
+   required, and passes the relevant identity-proofing policy.
+7. The orchestrator revalidates both authUserId and patientId.
+8. patient-portal-service creates the explicit mapping and changes it to ACTIVE.
+9. auth-service activates the PATIENT account.
+10. All steps emit audit events without passwords, tokens, or unnecessary PHI.
+
+The account should remain INVITED or disabled until the binding is successfully
+active. This prevents a partially provisioned patient from receiving a valid
+portal session that cannot resolve a patient record.
+
+Phase C - Patient login and profile access
+
+1. auth-service validates credentials, MFA, and account status.
+2. auth-service issues a short-lived JWT whose sub remains authUserId.
+3. The frontend calls GET /api/portal/me.
+4. patient-portal-service resolves sub through the ACTIVE portal identity.
+5. patient-portal-service checks the patient status in a local verified
+   projection or through a protected patient-service call.
+6. If the patient was merged, the policy deliberately resolves or rejects the
+   request using the survivor ID and records an audit event.
+7. If the patient is active, the service returns the authorized patient-safe
+   portal projection.
+8. If no link exists, return a specific 409 such as PORTAL_ENROLLMENT_REQUIRED.
+9. If the linked patient is missing, return 409 IDENTITY_LINK_INVALID, disable
+   portal access, and create an operator reconciliation task. Do not report the
+   patient as ACTIVE.
+
+The backend mapping is authoritative. A patient_id JWT claim may be included as
+a performance hint only after provisioning, but authorization must not rely on
+an unverified or stale claim.
+
+
+RECOMMENDED WORKFORCE USER CREATION WORKFLOW
+-------------------------------------------------------------------------------
+
+1. ADMIN or IDENTITY_ADMIN creates an invitation with the intended workforce
+   role and organizational attributes.
+2. auth-service stores an INVITED account and an expiring, one-time activation
+   token.
+3. The prospective user verifies their contact address and establishes a
+   password and MFA.
+4. Required employment/licensing data is verified by the authoritative staff
+   directory before activation for clinical roles.
+5. auth-service changes the account to ACTIVE and emits USER_ACTIVATED.
+6. Downstream services create only the projections they actually own.
+7. Every creation, role change, suspension, and reactivation is audited.
+
+Patients must never be allowed to create workforce accounts or assign roles.
+
+
+FAILURE HANDLING AND CONSISTENCY STRATEGY
+-------------------------------------------------------------------------------
+
+Distributed databases should not be forced into one database transaction.
+Use a durable saga/state-machine workflow plus transactional outboxes and
+idempotent consumers.
+
+Required controls:
+
+1. Every command carries an idempotency key and correlation ID.
+2. Each service commits its own state and outbox event atomically.
+3. Consumers record processed event IDs or use equivalent unique constraints.
+4. Retriable failures use bounded backoff and then enter a dead-letter queue.
+5. Operators can inspect and safely replay failed provisioning steps.
+6. A scheduled reconciliation job compares ACTIVE portal mappings against
+   auth-service and patient-service.
+7. Missing or invalid dependencies suspend the portal identity rather than
+   silently returning an empty or ACTIVE account.
+8. Patient merge/archive/status events update or suspend portal mappings and
+   downstream projections.
+9. Dashboards and alerts report stuck PENDING, FAILED, and inconsistent states.
+10. Audit events record transitions and outcomes without secrets or excessive
+    patient data.
+
+Suggested provisioning state record:
+
+    provisioningId
+    patientId
+    authUserId (nullable until created)
+    requestedBy
+    status
+    currentStep
+    failureCode
+    retryCount
+    idempotencyKey
+    correlationId
+    createdAt
+    updatedAt
+
+
+RECONCILIATION RULES
+-------------------------------------------------------------------------------
+
+The reconciliation process should detect at least:
+
+- PATIENT auth user with no ACTIVE portal identity;
+- ACTIVE portal identity whose auth user is missing, disabled, or not PATIENT;
+- ACTIVE portal identity whose patient is missing, merged, archived, or not
+  eligible;
+- one auth subject mapped to multiple patients;
+- one patient mapped to multiple owner accounts when policy permits only one;
+- billing, appointment, EHR, insurance, or staff records referring to a patient
+  UUID that does not exist;
+- PATIENT_REGISTERED events whose required consumers have not completed; and
+- outbox or dead-letter records that exceeded retry thresholds.
+
+The process should report and quarantine inconsistencies. It should not guess a
+patient match based only on equal email, name, or phone number.
+
+
+REQUIRED TESTS
+-------------------------------------------------------------------------------
+
+Unit and integration tests should cover:
+
+- allowed and forbidden patient-registration roles;
+- ADMIN-only workforce account creation and role assignment;
+- patient creation does not accidentally enable portal access;
+- idempotent patient registration and portal invitation retries;
+- activation only after verified patient and auth records exist;
+- /portal/me ignores caller-supplied patient identifiers;
+- missing mapping returns PORTAL_ENROLLMENT_REQUIRED;
+- binding to a nonexistent patient is rejected;
+- binding to a nonexistent or non-PATIENT auth user is rejected;
+- missing linked patient suspends access and creates a reconciliation task;
+- foreign-patient access returns 403;
+- merged and archived patient behavior;
+- duplicate event delivery does not duplicate billing or identity records;
+- temporary Kafka/service outages recover correctly;
+- permanent failures enter a visible dead-letter state;
+- role changes and account disablement invalidate or limit sessions; and
+- logs and events never contain passwords, activation tokens, or unnecessary
+  PHI.
+
+An end-to-end test must create a new patient, invite and activate that patient,
+log in, call /api/portal/me, and verify that the returned patientId is exactly
+the patient-service record created at the beginning of the test.
+
+
+IMPLEMENTATION ORDER
+-------------------------------------------------------------------------------
+
+1. Correct development seed data so auth users, patient records, and portal
+   mappings form valid end-to-end test identities.
+2. Add auth account lifecycle fields and secure admin/invitation APIs.
+3. Add portal identity lifecycle fields and uniqueness constraints.
+4. Add protected internal existence/status APIs or verified local projections.
+5. Make identity binding validate both sides.
+6. Implement a durable portal-enrollment saga with idempotent steps.
+7. Introduce GET /api/portal/me and update the frontend to use it.
+8. Replace the hard-coded portal ACTIVE status with verified lifecycle state.
+9. Handle patient merged, archived, and disabled-account events.
+10. Add dead-letter handling, replay tooling, reconciliation, monitoring, and
+    alerts.
+11. Add unit, integration, contract, and end-to-end tests.
+12. Migrate existing identities, quarantine invalid mappings, and only then
+    remove the legacy subject-as-patient-ID fallback.
+
+
+ACCEPTANCE CRITERIA
+-------------------------------------------------------------------------------
+
+The solution is complete when all of the following are true:
+
+- Creating a patient produces one patient and the expected idempotent downstream
+  projections, but does not silently create usable credentials.
+- Portal access is enabled only through a deliberate, auditable invitation and
+  identity-verification workflow.
+- Every ACTIVE patient login resolves to exactly one existing, eligible patient.
+- A nonexistent or invalid patient link cannot return an ACTIVE portal response.
+- Patients retrieve their own information through /portal/me without choosing a
+  patient UUID.
+- Only authorized identity administrators can create workforce users or assign
+  roles.
+- Partial failures remain visible, retryable, auditable, and reconcilable.
+- Duplicate commands and events do not create duplicate records.
+- Patient merge, archive, and account disablement are reflected in portal access.
+- Automated tests prove the complete registration-to-login journey.

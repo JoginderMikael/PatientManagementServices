@@ -25,7 +25,14 @@ public class PatientPortalController {
     this.patientPortalService = patientPortalService;
   }
 
+  @GetMapping("/me")
+  @Operation(summary = "Get the current patient's portal overview")
+  public PortalOverview me() {
+    return patientPortalService.overviewForCurrentUser();
+  }
+
   @GetMapping("/patients/{patientId}/overview")
+  @PreAuthorize("hasRole('ADMIN')")
   @Operation(summary = "Get a patient portal overview")
   public PortalOverview overview(@PathVariable UUID patientId) {
     return patientPortalService.overview(patientId);

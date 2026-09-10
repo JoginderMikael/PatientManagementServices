@@ -35,9 +35,7 @@ export function RecordsPage() {
     resolver: zodResolver(schema),
     defaultValues: { recordType: "", privacyAcknowledged: false as true },
   });
-  const key = state.patientId
-    ? queryKeys.portalOverview(state.patientId)
-    : ["portal-overview"];
+  const key = queryKeys.portalOverview();
   const create = useMutation({
     mutationFn: (values: Values) =>
       createRecordRequest(

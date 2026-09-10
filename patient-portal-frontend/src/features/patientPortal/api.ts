@@ -10,11 +10,10 @@ import {
 } from "./types";
 
 export function getPortalOverview(
-  patientId: string,
   token: string,
 ): Promise<PortalOverview> {
   return apiRequest(
-    `/api/portal/patients/${encodeURIComponent(patientId)}/overview`,
+    "/api/portal/me",
     { token },
   );
 }

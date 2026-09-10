@@ -39,7 +39,7 @@ export const syntheticOverview = {
 
 export const portalHandlers = [
   rest.get(
-    `${API_BASE_URL}/api/portal/patients/:patientId/overview`,
+    `${API_BASE_URL}/api/portal/me`,
     (_request, response, context) => response(context.json(syntheticOverview)),
   ),
   rest.post(

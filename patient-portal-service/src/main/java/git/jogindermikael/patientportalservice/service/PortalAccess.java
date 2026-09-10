@@ -5,6 +5,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class PortalAccess {
@@ -29,11 +31,24 @@ public class PortalAccess {
 
   public boolean owner(UUID patient) {
     return jdbc.queryForObject(
-            "SELECT COUNT(*) FROM portal_identity WHERE subject=? AND patient_id=?",
+            "SELECT COUNT(*) FROM portal_identity WHERE subject=? AND patient_id=?"
+                + " AND status='ACTIVE' AND patient_status='ACTIVE'",
             Integer.class,
             actor(),
             patient)
         > 0;
+  }
+
+  public UUID patientForActor() {
+    var matches = jdbc.queryForList(
+        "SELECT patient_id FROM portal_identity WHERE subject=?"
+            + " AND status='ACTIVE' AND patient_status='ACTIVE'",
+        actor());
+    if (matches.isEmpty()) {
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT, "PORTAL_ENROLLMENT_REQUIRED");
+    }
+    return (UUID) matches.getFirst().get("patient_id");
   }
 
   public void requireOwner(UUID patient) {

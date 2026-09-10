@@ -28,6 +28,14 @@ public class PatientPortalService {
 
   public PortalOverview overview(UUID patientId) {
     access.requireOwner(patientId);
+    return overviewData(patientId);
+  }
+
+  public PortalOverview overviewForCurrentUser() {
+    return overviewData(access.patientForActor());
+  }
+
+  private PortalOverview overviewData(UUID patientId) {
     return new PortalOverview(
         patientId,
         "ACTIVE",

@@ -25,6 +25,7 @@ public class AuthService {
     public Optional<String> authenticate(LoginRequestDto loginRequestDto) {
 
         return userService.findByEmail(loginRequestDto.getEmail())
+                .filter(u -> "ACTIVE".equals(u.getStatus()))
                 .filter(u -> passwordEncoder.matches(loginRequestDto.getPassword(), u.getPassword()))
                 .map(jwtUtil::generateToken);
     }

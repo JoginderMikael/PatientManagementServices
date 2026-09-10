@@ -19,6 +19,7 @@ class Phase3PortalTest {
   @Autowired PatientPortalService service;
   @Autowired PortalWorkflowService workflow;
   @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
+  @Autowired PatientLifecycleConsumer lifecycle;
 
   private void identity(String actor, String role) {
     org.springframework.security.core.context.SecurityContextHolder.getContext()
@@ -86,6 +87,25 @@ class Phase3PortalTest {
     assertThrows(
         org.springframework.security.access.AccessDeniedException.class,
         () -> service.requestRecords(new RecordAccessCommand(patient, "SUMMARY")));
+  }
+
+  @Test
+  void currentPatientIsResolvedServerSideAndSuspendedOnArchive() throws Exception {
+    UUID patient = UUID.randomUUID();
+    String subject = UUID.randomUUID().toString();
+    identity("admin", "ADMIN");
+    workflow.bind(new PortalWorkflowService.Identity(subject, patient));
+    identity(subject, "PATIENT");
+    assertEquals(patient, service.overviewForCurrentUser().patientId());
+
+    lifecycle.consume(("""
+        {"schemaVersion":1,"eventType":"PATIENT_ARCHIVED","patientId":"%s",\
+         "payload":{"status":"ARCHIVED"}}
+        """).formatted(patient).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+    assertThrows(
+        ResponseStatusException.class,
+        service::overviewForCurrentUser);
   }
 
   @Test

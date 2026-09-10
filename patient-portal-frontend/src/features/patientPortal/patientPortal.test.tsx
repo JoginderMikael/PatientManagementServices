@@ -18,7 +18,7 @@ describe("minimal patient portal", () => {
   test("loads the overview and distinguishes an empty patient account", async () => {
     server.use(
       rest.get(
-        `${API_BASE_URL}/api/portal/patients/:patientId/overview`,
+        `${API_BASE_URL}/api/portal/me`,
         (_request, response, context) =>
           response(
             context.json({
@@ -147,7 +147,7 @@ describe("minimal patient portal", () => {
   test("keeps owner denial and not-ready record download distinct", async () => {
     server.use(
       rest.get(
-        `${API_BASE_URL}/api/portal/patients/:patientId/overview`,
+        `${API_BASE_URL}/api/portal/me`,
         (_request, response, context) => response(context.status(403)),
       ),
     );

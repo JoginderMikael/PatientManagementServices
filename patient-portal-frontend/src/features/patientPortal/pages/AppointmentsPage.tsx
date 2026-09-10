@@ -36,9 +36,7 @@ export function AppointmentsPage() {
     resolver: zodResolver(schema),
     defaultValues: { preferredSpecialty: "", reason: "" },
   });
-  const key = state.patientId
-    ? queryKeys.portalOverview(state.patientId)
-    : ["portal-overview"];
+  const key = queryKeys.portalOverview();
   const create = useMutation({
     mutationFn: (values: Values) =>
       createAppointmentRequest(

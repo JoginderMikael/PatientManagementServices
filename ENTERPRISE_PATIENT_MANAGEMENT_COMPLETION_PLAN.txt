@@ -1,6 +1,6 @@
 ENTERPRISE PATIENT MANAGEMENT SYSTEM COMPLETION ASSESSMENT AND ROADMAP
 Generated: 2026-08-27
-Updated: 2026-09-08 - Phase 4 repository baseline complete; deployment placeholders open
+Updated: 2026-09-10 - Identity consistency foundation and /portal/me complete
 Repository: C:\S_Projects\PatientManagementServices
 
 Scope and assumptions
@@ -25,6 +25,32 @@ The project already mentions HIPAA, so this report uses HIPAA and US interoperab
 references as anchors. If the product is deployed outside the US, add the relevant
 local healthcare, privacy, data residency, and breach notification requirements.
 This document is engineering guidance, not legal advice.
+
+
+Implementation update - 2026-09-10: identity consistency foundation
+---------------------------------------------------------------------
+
+- auth-service now has ADMIN-only user creation, role update, status update, and
+  safe user lookup endpoints. Only ACTIVE accounts can authenticate.
+- patient-portal-service now resolves the logged-in patient server-side through
+  GET /portal/me instead of trusting a browser-selected patient UUID.
+- Legacy patient-specific portal overview access is restricted to ADMIN.
+- New portal identity bindings validate an ACTIVE PATIENT auth account and an
+  ACTIVE patient-service record before being committed.
+- portal_identity now records both portal lifecycle and projected patient
+  lifecycle; patient lifecycle events suspend access after inactive, merge, or
+  archive transitions.
+- Development migrations now provide real patient-service rows for the two
+  synthetic PATIENT login identities.
+- The React client and tests use /api/portal/me and a stable current-user query
+  key.
+- ARCHITECTURE.txt at repository root records current service ownership,
+  identity boundaries, API changes, guarantees, and remaining work.
+
+Still open before production patient enrollment: single-use invitation tokens,
+contact verification, MFA enrollment, a durable provisioning saga, dead-letter
+and replay operations, reconciliation dashboards, and patient-safe clinical
+profile projection.
 
 
 Implementation update - 2026-09-07: Phase 3

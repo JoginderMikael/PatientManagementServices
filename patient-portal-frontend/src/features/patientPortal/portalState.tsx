@@ -6,27 +6,15 @@ import { ErrorState } from "../../components/feedback/ErrorState";
 import { Skeleton } from "../../components/feedback/Skeleton";
 import { getPortalOverview } from "./api";
 
-const uuidPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 export function usePortalOverview() {
   const { session } = useAuth();
-  const claimPatientId = session?.user.patientId;
-  const patientId =
-    claimPatientId && uuidPattern.test(claimPatientId)
-      ? claimPatientId
-      : session?.user.subject && uuidPattern.test(session.user.subject)
-        ? session.user.subject
-        : null;
   const token = session?.token ?? "";
   const query = useQuery({
-    queryKey: patientId
-      ? queryKeys.patientResource(patientId, "portal-overview")
-      : ["portal-overview", "unavailable"],
-    queryFn: () => getPortalOverview(patientId!, token),
-    enabled: Boolean(patientId && token),
+    queryKey: queryKeys.portalOverview(),
+    queryFn: () => getPortalOverview(token),
+    enabled: Boolean(token),
   });
-  return { patientId, token, ...query };
+  return { patientId: query.data?.patientId ?? null, token, ...query };
 }
 
 export function PortalBoundary({
@@ -36,13 +24,6 @@ export function PortalBoundary({
   state: ReturnType<typeof usePortalOverview>;
   children: React.ReactNode;
 }) {
-  if (!state.patientId)
-    return (
-      <ErrorState
-        title="Portal identity unavailable"
-        message="Your signed-in account is not linked to an opaque patient identifier. Contact registration support."
-      />
-    );
   if (state.isLoading)
     return <Skeleton label="Loading your patient portal" lines={5} />;
   if (state.error) {
@@ -70,5 +51,12 @@ export function PortalBoundary({
       />
     );
   }
+  if (!state.patientId)
+    return (
+      <ErrorState
+        title="Portal identity unavailable"
+        message="Your signed-in account is not linked to an active patient record. Contact registration support."
+      />
+    );
   return <>{children}</>;
 }

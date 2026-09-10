@@ -488,6 +488,20 @@ GET /auth/validate
   Role: any valid token. Body: none. Header: Authorization required.
   Result: 200 empty body when valid; 401 empty body otherwise.
 
+POST /auth/admin/users
+  Role: ADMIN. Body: {email:string,password:string(min 12),role:UserRole}.
+  Result: 201 {id,email,role,status}. New accounts are ACTIVE.
+
+GET /auth/admin/users/{id}
+  Role: ADMIN. Result: 200 {id,email,role,status}; 404 when absent.
+
+PATCH /auth/admin/users/{id}/role
+  Role: ADMIN. Body: {role:UserRole}. Result: 200 {id,email,role,status}.
+
+PATCH /auth/admin/users/{id}/status
+  Role: ADMIN. Body: {status:"INVITED"|"ACTIVE"|"LOCKED"|"DISABLED"}.
+  Result: 200 {id,email,role,status}. Only ACTIVE accounts can log in.
+
 3.2 Patient service
 
 GET /api/patients
@@ -782,8 +796,13 @@ POST /api/compliance/cases/{id}/hold
 Patient portal endpoints require ADMIN or PATIENT. The service performs additional
 owner/proxy-scope checks for protected patient operations.
 
+GET /api/portal/me
+  Role: PATIENT. Body: none. Resolves patientId server-side from JWT sub and an
+  ACTIVE portal_identity whose patient lifecycle projection is also ACTIVE.
+  Result: 200 PortalOverview; 409 PORTAL_ENROLLMENT_REQUIRED when no active link.
+
 GET /api/portal/patients/{patientId}/overview
-  Body: none. Result: 200 PortalOverview.
+  Role: ADMIN only. Body: none. Result: 200 PortalOverview.
 POST /api/portal/appointment-requests
   Body: PortalAppointmentCommand. Result: 201 PortalAppointmentRequest.
 POST /api/portal/record-requests
@@ -792,7 +811,9 @@ POST /api/portal/payments
   Header: Idempotency-Key (required). Body: PortalPaymentCommand.
   Result: 201 PortalPayment; deliberate retry must reuse the same key.
 POST /api/portal/identities
-  Role: ADMIN. Body: PortalIdentity. Result: 200 empty.
+  Role: ADMIN. Body: PortalIdentity. Result: 200 empty. Before insertion, the
+  service verifies that subject identifies an ACTIVE PATIENT auth account and
+  patientId identifies an ACTIVE patient-service record; invalid links return 409.
 POST /api/portal/patients/{id}/proxies
   Roles: ADMIN/PATIENT plus owner check. Body: ProxyGrant.
   Result: 200 UUID (grant ID as JSON string).

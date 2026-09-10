@@ -45,9 +45,7 @@ export function BillingPage() {
     resolver: zodResolver(schema),
     defaultValues: { invoiceId: "", amount: "" },
   });
-  const key = state.patientId
-    ? queryKeys.portalOverview(state.patientId)
-    : ["portal-overview"];
+  const key = queryKeys.portalOverview();
   const payment = useMutation({
     mutationFn: (values: Values) => {
       const signature = `${state.patientId}:${values.invoiceId}:${values.amount}`;
