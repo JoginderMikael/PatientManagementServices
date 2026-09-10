@@ -1,8 +1,8 @@
 PATIENT MANAGEMENT FRONTEND - EXPECTED ARCHITECTURE
 ===================================================
 
-Status: Phases 1-2 complete; Phases 3-5 planned
-Last reviewed and verified: 2026-09-09
+Status: Phases 1-3 complete; Phases 4-5 planned
+Last reviewed and verified: 2026-09-10
 Applies to: patient-portal-frontend
 
 1. PURPOSE
@@ -22,10 +22,11 @@ The current code is a Create React App/React 19/strict TypeScript application wi
 the Phase 1 foundation implemented. It has provider and route composition, shared
 patient/staff shells, centralized role-aware navigation, an in-memory authenticated
 session, a typed gateway boundary, accessible shared primitives and synthetic test
-infrastructure. The minimal patient portal is implemented against the verified
-patient-portal gateway contract; staff routes intentionally retain foundation
-placeholders until their workflows are implemented in Phases 3-4. The architecture
-below records both the verified current implementation and the planned end state.
+infrastructure. The minimal patient portal and core Phase 3 staff workflows are
+implemented against verified gateway contracts. Billing, insurance, pharmacy,
+inventory, notifications, compliance, audit and reports retain explicit Phase 4
+placeholders. The architecture below records both the verified current
+implementation and the planned end state.
 
 2. PRODUCT SURFACES
 -------------------
@@ -605,27 +606,56 @@ Known contract boundaries:
     grant-listing response contracts are available. This is an intentional safety
     boundary, not an unfinished visible control.
 
-PHASE 3 - CORE STAFF AND CLINICAL WORKFLOWS
+PHASE 3 - CORE STAFF AND CLINICAL WORKFLOWS - COMPLETE 2026-09-10
 
-Scope:
+Verified implementation:
 
-  1. Implement the role-scoped work queue with URL filters, claim, handoff, comment,
-     history and completion behavior.
-  2. Implement patient search, duplicate review, registration, patient selection,
-     persistent patient banner, demographics and lifecycle presentation.
-  3. Implement appointment list/day views, availability and conflict-aware booking.
-  4. Implement read-first chart sections for summary, encounters, history/allergies,
-     diagnoses, prescriptions, laboratory results, notes and vaccinations.
-  5. Enable carefully gated writes only after confirmations, 409 safety handling and
-     authoritative refetch behavior are proven.
+  - `/staff/work-queue` reads the authenticated role's queue with URL-owned role,
+    priority and bounded-limit filters. It exposes claim, comment, self-handoff with
+    a new due cycle, history and completion. Ownership/status mutations never update
+    optimistically; 409 responses refresh the authoritative queue and remain visible
+    as concurrency states. Administrators may select another permitted queue.
+  - `/staff/patients` reads the current registry, applies URL-owned search and
+    lifecycle filters, performs server duplicate checks before registration and
+    creates patients with a cryptographic idempotency key retained for an unchanged
+    deliberate retry. Search is intentionally client-filtered because the current
+    patient list contract is unpaged and has no general search query.
+  - `/staff/patients/:patientId/*` establishes patient context from a fresh patient
+    lookup and displays a persistent identity banner. A patient-ID transition aborts
+    outstanding reads and removes the previous patient's query subtree before the
+    next record renders. Registration roles receive identity/demographic views only.
+  - `/staff/schedule` provides URL-owned day/all-list modes, patient filtering,
+    available doctor-schedule selection and booking with the backend's 5-480 minute
+    validation. Booking conflicts invalidate the appointment list and require review.
+  - Clinical routes provide summary, encounters/history/allergies, diagnoses and
+    prescriptions, labs, notes and vaccinations. Eight patient-scoped reads compose
+    one abortable chart query. Signed notes are explicitly locked. Alert
+    acknowledgement, note signing and medication discontinuation name the affected
+    patient/resource in confirmation dialogs and refetch after success or conflict.
+  - Phase 3 uses feature-owned strict TypeScript contracts, normalizes provisional
+    snake_case queue/alert maps at the API boundary and routes all requests through
+    the configured gateway client. No staff or patient data is persistently cached.
+  - Synthetic MSW coverage proves registry-to-chart context, queue claiming,
+    appointment 409 handling, signed-note immutability, alert confirmation and a
+    basic accessibility scan. The full frontend gate passes strict typecheck,
+    45 tests across 5 suites and an optimized production build.
 
-Exit gate:
+Known contract boundaries:
 
-  - Search/select patient, queue lifecycle, appointment booking and chart-read
-    journeys pass against synthetic integrated services.
-  - Patient changes cancel obsolete reads and clear patient-scoped cached data.
-  - Cross-role and cross-patient denials, signed-note immutability and medication
-    safety conflicts have automated coverage.
+  - The backend has no staff-directory lookup. Handoff therefore supports only the
+    authenticated actor and a new due cycle; the UI does not ask users to type an
+    opaque assignee UUID. Reassignment to another staff member requires a verified
+    staff-selection contract.
+  - The patient service does not authorize NURSE and exposes no minimum-necessary
+    nurse identity-banner endpoint. The nurse clinical landing page explains this
+    boundary instead of opening an unverified patient chart. Assigned queue and
+    safety APIs remain role-gated by their services.
+  - General patient search is not a server contract and `GET /api/patients` remains
+    unpaginated. The current client filter is suitable only for the bounded initial
+    deployment; a paginated search DTO is required before representative scale.
+  - The appointment contract exposes doctor UUIDs and schedules but no staff display
+    directory or explicit slot resource. The UI presents the verified schedule date,
+    time and location and relies on booking conflict enforcement for concurrency.
 
 PHASE 4 - SPECIALIZED OPERATIONS
 

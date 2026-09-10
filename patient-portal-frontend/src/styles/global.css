@@ -367,6 +367,115 @@ a {
   gap: 0 1rem;
 }
 
+.toolbar,
+.task-actions {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: .75rem;
+}
+
+.toolbar .field {
+  min-width: 180px;
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.task-actions {
+  align-items: center;
+  margin: .8rem 0;
+}
+
+.task-actions .field {
+  min-width: 220px;
+  margin: 0;
+}
+
+.registration-review {
+  margin-top: 1rem;
+}
+
+.registration-review > .button {
+  margin-top: 1rem;
+}
+
+.row-overdue {
+  background: #fff9ed;
+}
+
+.patient-workspace {
+  padding-top: 1.2rem;
+}
+
+.record-tabs {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.record-tab {
+  padding: .7rem .85rem;
+  color: var(--color-muted);
+  border-bottom: 3px solid transparent;
+  text-decoration: none;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.record-tab--active {
+  color: var(--color-teal-700);
+  border-bottom-color: var(--color-teal-700);
+}
+
+.clinical-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.metric {
+  padding: 1rem;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.metric span,
+.metric strong {
+  display: block;
+}
+
+.metric span {
+  color: var(--color-muted);
+  font-size: .82rem;
+}
+
+.metric strong {
+  margin-top: .2rem;
+  color: var(--color-navy-950);
+  font-size: 1.65rem;
+}
+
+.record-entry {
+  padding: .8rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.record-entry h3,
+.record-entry p {
+  margin: 0 0 .35rem;
+}
+
+.clinical-text {
+  min-width: 260px;
+  white-space: pre-wrap;
+}
+
+.center-action {
+  margin: 0 0 2rem;
+  text-align: center;
+}
+
 .request-id-inline {
   display: block;
   margin-top: .25rem;
@@ -1010,6 +1119,10 @@ td {
   }
 
   .portal-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .clinical-summary-grid {
     grid-template-columns: 1fr;
   }
 }

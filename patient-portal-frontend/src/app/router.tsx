@@ -11,6 +11,12 @@ import { AppointmentsPage } from "../features/patientPortal/pages/AppointmentsPa
 import { BillingPage } from "../features/patientPortal/pages/BillingPage";
 import { OverviewPage } from "../features/patientPortal/pages/OverviewPage";
 import { RecordsPage } from "../features/patientPortal/pages/RecordsPage";
+import { StaffPatientLayout } from "../features/staff/StaffPatientLayout";
+import { ClinicalChartLandingPage } from "../features/staff/pages/ClinicalChartLandingPage";
+import { PatientRecordPage } from "../features/staff/pages/PatientRecordPage";
+import { PatientsPage } from "../features/staff/pages/PatientsPage";
+import { SchedulePage } from "../features/staff/pages/SchedulePage";
+import { WorkQueuePage } from "../features/staff/pages/WorkQueuePage";
 import {
   patientRoles,
   staffNavigation,
@@ -18,14 +24,6 @@ import {
 } from "./routePolicy";
 
 const staffPages = [
-  ["work-queue", "Work queue", "Review assigned and permitted queue work."],
-  ["patients", "Patients", "Search, register and select patient context."],
-  ["schedule", "Schedule", "Review availability and appointment lists."],
-  [
-    "clinical-chart",
-    "Clinical chart",
-    "Open a patient context before viewing clinical records.",
-  ],
   ["billing", "Billing", "Review patient accounts, invoices and postings."],
   ["insurance", "Insurance", "Manage coverage, claims and remittances."],
   [
@@ -71,6 +69,22 @@ export function AppRoutes() {
         <Route element={<RequireRole allow={staffRoles} />}>
           <Route path="/staff" element={<AppShell surface="staff" />}>
             <Route index element={<Navigate to="work-queue" replace />} />
+            <Route path="work-queue" element={<RequireRole allow={staffNavigation.find(item=>item.to==='/staff/work-queue')!.roles}><WorkQueuePage /></RequireRole>} />
+            <Route path="patients" element={<RequireRole allow={staffNavigation.find(item=>item.to==='/staff/patients')!.roles}><PatientsPage /></RequireRole>} />
+            <Route path="schedule" element={<RequireRole allow={staffNavigation.find(item=>item.to==='/staff/schedule')!.roles}><SchedulePage /></RequireRole>} />
+            <Route path="clinical-chart" element={<RequireRole allow={staffNavigation.find(item=>item.to==='/staff/clinical-chart')!.roles}><ClinicalChartLandingPage /></RequireRole>} />
+            <Route element={<RequireRole allow={['ADMIN','CLINICIAN','REGISTRATION_STAFF']} />}>
+              <Route path="patients/:patientId" element={<StaffPatientLayout />}>
+                <Route index element={<Navigate to="summary" replace />} />
+                <Route path="summary" element={<PatientRecordPage />} />
+                <Route path="demographics" element={<PatientRecordPage />} />
+                <Route path="encounters" element={<RequireRole allow={['ADMIN','CLINICIAN']}><PatientRecordPage /></RequireRole>} />
+                <Route path="medications" element={<RequireRole allow={['ADMIN','CLINICIAN']}><PatientRecordPage /></RequireRole>} />
+                <Route path="labs" element={<RequireRole allow={['ADMIN','CLINICIAN']}><PatientRecordPage /></RequireRole>} />
+                <Route path="notes" element={<RequireRole allow={['ADMIN','CLINICIAN']}><PatientRecordPage /></RequireRole>} />
+                <Route path="vaccinations" element={<RequireRole allow={['ADMIN','CLINICIAN']}><PatientRecordPage /></RequireRole>} />
+              </Route>
+            </Route>
             {staffPages.map(([path, title, description]) => {
               const policy = staffNavigation.find(
                 (item) => item.to === `/staff/${path}`,

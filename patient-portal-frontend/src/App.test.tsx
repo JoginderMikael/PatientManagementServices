@@ -136,6 +136,7 @@ describe('application foundation', () => {
     const { container } = renderWithProviders(<AppRoutes />, { route: path });
     await screen.findByRole('heading', { name: path.startsWith('/staff') ? 'Work queue' : 'Overview' });
     if (path.startsWith('/patient')) await screen.findByRole('heading', { name: 'Account summary' });
+    if (path.startsWith('/staff')) await screen.findByText('Review synthetic discharge plan');
     if (width === 320) {
       const toggle = screen.getByRole('button', { name: /toggle primary navigation/i });
       toggle.focus();
