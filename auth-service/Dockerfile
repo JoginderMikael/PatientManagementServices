@@ -20,12 +20,17 @@ COPY staff-dashboard-service/pom.xml staff-dashboard-service/pom.xml
 COPY infrastructure/pom.xml infrastructure/pom.xml
 COPY integration-tests/pom.xml integration-tests/pom.xml
 
-RUN --mount=type=cache,id=patient-management-maven,target=/root/.m2 \
-    mvn -pl auth-service -am dependency:go-offline -B
+RUN --mount=type=cache,id=patient-management-maven-v2,target=/root/.m2,sharing=locked \
+    for attempt in 1 2 3; do \
+        if mvn -pl auth-service -am dependency:resolve dependency:resolve-plugins -DincludeScope=runtime -DskipTests -B; then exit 0; fi; \
+        echo "Maven download failed (attempt $attempt/3); retrying..."; \
+        sleep $((attempt * 5)); \
+    done; \
+    exit 1
 
 COPY auth-service/src auth-service/src
 
-RUN --mount=type=cache,id=patient-management-maven,target=/root/.m2 \
+RUN --mount=type=cache,id=patient-management-maven-v2,target=/root/.m2,sharing=locked \
     mvn -pl auth-service -am clean package -DskipTests
 
 FROM eclipse-temurin:21-jre AS runner
