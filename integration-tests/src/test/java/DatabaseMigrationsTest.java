@@ -27,7 +27,7 @@ class DatabaseMigrationsTest {
   void appliesAuthProductionMigrationsWithoutDevelopmentUsers() throws Exception {
     MigrateResult result = migrate("auth_service", "auth-service");
 
-    assertEquals(1, result.migrationsExecuted);
+    assertEquals(2, result.migrationsExecuted);
     assertTrue(tableExists("auth_service", "users"));
     assertEquals(0, rowCount("auth_service", "users"));
   }
@@ -98,7 +98,7 @@ class DatabaseMigrationsTest {
 
   @Test
   void appliesPortalMigrations() throws Exception {
-    assertEquals(1, migrate("patient_portal_service", "patient-portal-service").migrationsExecuted);
+    assertEquals(2, migrate("patient_portal_service", "patient-portal-service").migrationsExecuted);
     assertTrue(tableExists("patient_portal_service", "workflow_lock"));
   }
 
