@@ -36,7 +36,7 @@ class DatabaseMigrationsTest {
   void appliesPatientProductionMigrationsWithoutDevelopmentPatients() throws Exception {
     MigrateResult result = migrate("patient_service", "patient-service");
 
-    assertEquals(2, result.migrationsExecuted);
+    assertEquals(3, result.migrationsExecuted);
     assertTrue(tableExists("patient_service", "patient"));
     assertTrue(tableExists("patient_service", "patient_identifier"));
     assertTrue(tableExists("patient_service", "patient_merge_history"));
@@ -46,66 +46,77 @@ class DatabaseMigrationsTest {
 
   @Test
   void appliesBillingProductionMigrations() throws Exception {
-    assertEquals(2, migrate("billing_service", "billing-service").migrationsExecuted);
+    assertEquals(3, migrate("billing_service", "billing-service").migrationsExecuted);
     assertTrue(tableExists("billing_service", "billing_account"));
+    assertTrue(tableExists("billing_service", "reliable_event_outbox"));
+    assertTrue(tableExists("billing_service", "reliable_event_inbox"));
   }
 
   @Test
   void appliesAppointmentProductionMigrations() throws Exception {
-    assertEquals(1, migrate("appointment_service", "appointment-service").migrationsExecuted);
+    assertEquals(2, migrate("appointment_service", "appointment-service").migrationsExecuted);
     assertTrue(tableExists("appointment_service", "appointment"));
     assertTrue(tableExists("appointment_service", "appointment_slot"));
+    assertTrue(tableExists("appointment_service", "appointment_resource"));
+    assertTrue(tableExists("appointment_service", "reliable_event_outbox"));
   }
 
   @Test
   void appliesEhrProductionMigrations() throws Exception {
-    assertEquals(2, migrate("ehr_service", "ehr-service").migrationsExecuted);
+    assertEquals(3, migrate("ehr_service", "ehr-service").migrationsExecuted);
     assertTrue(tableExists("ehr_service", "encounter"));
     assertTrue(tableExists("ehr_service", "diagnosis"));
     assertTrue(tableExists("ehr_service", "prescription"));
     assertTrue(tableExists("ehr_service", "lab_result"));
     assertTrue(tableExists("ehr_service", "clinical_note"));
+    assertTrue(tableExists("ehr_service", "clinical_resource"));
+    assertTrue(tableExists("ehr_service", "clinical_provenance"));
+    assertTrue(tableExists("ehr_service", "reliable_event_outbox"));
   }
 
   @Test
   void appliesNotificationProductionMigrations() throws Exception {
-    assertEquals(1, migrate("notification_service", "notification-service").migrationsExecuted);
+    assertEquals(2, migrate("notification_service", "notification-service").migrationsExecuted);
     assertTrue(tableExists("notification_service", "notification_message"));
+    assertTrue(tableExists("notification_service", "notification_preference"));
+    assertTrue(tableExists("notification_service", "notification_template"));
+    assertTrue(tableExists("notification_service", "reliable_event_outbox"));
   }
 
   @Test
   void appliesAuditProductionMigrations() throws Exception {
-    assertEquals(3, migrate("audit_service", "audit-compliance-service").migrationsExecuted);
+    assertEquals(4, migrate("audit_service", "audit-compliance-service").migrationsExecuted);
     assertTrue(tableExists("audit_service", "audit_event"));
     assertTrue(tableExists("audit_service", "privacy_grant"));
     assertTrue(tableExists("audit_service", "compliance_case"));
     assertTrue(tableExists("audit_service", "compliance_history"));
     assertTrue(tableExists("audit_service", "audit_chain_head"));
+    assertTrue(tableExists("audit_service", "reliable_event_inbox"));
   }
 
   @Test
   void appliesInsuranceMigrations() throws Exception {
-    assertEquals(1, migrate("insurance_service", "insurance-service").migrationsExecuted);
+    assertEquals(2, migrate("insurance_service", "insurance-service").migrationsExecuted);
     assertTrue(tableExists("insurance_service", "workflow_lock"));
   }
 
   @Test
   void appliesPharmacyMigrations() throws Exception {
     assertEquals(
-        1, migrate("inventory_pharmacy_service", "inventory-pharmacy-service").migrationsExecuted);
+        2, migrate("inventory_pharmacy_service", "inventory-pharmacy-service").migrationsExecuted);
     assertTrue(tableExists("inventory_pharmacy_service", "workflow_lock"));
   }
 
   @Test
   void appliesPortalMigrations() throws Exception {
-    assertEquals(2, migrate("patient_portal_service", "patient-portal-service").migrationsExecuted);
+    assertEquals(3, migrate("patient_portal_service", "patient-portal-service").migrationsExecuted);
     assertTrue(tableExists("patient_portal_service", "workflow_lock"));
   }
 
   @Test
   void appliesStaffMigrations() throws Exception {
     assertEquals(
-        1, migrate("staff_dashboard_service", "staff-dashboard-service").migrationsExecuted);
+        2, migrate("staff_dashboard_service", "staff-dashboard-service").migrationsExecuted);
     assertTrue(tableExists("staff_dashboard_service", "workflow_lock"));
   }
 

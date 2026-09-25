@@ -19,6 +19,7 @@
     <description>Root reactor and dependency parent for Patient Management Services</description>
 
     <modules>
+        <module>reliability-core</module>
         <module>api-gateway</module>
         <module>auth-service</module>
         <module>patient-service</module>

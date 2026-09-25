@@ -45,6 +45,7 @@ The project consists of the following microservices:
 - **Responsibilities**:
     - Managing doctor schedules, patient bookings, cancellations, and waitlists.
     - Enforcing overlapping-booking conflicts with database-backed slot reservations.
+    - Supporting recurrence, atomic rescheduling, rooms/equipment, check-in/out, no-shows, and waitlist promotion.
     - Creating virtual consultation rooms and capturing digital consent forms.
 
 ### 7. Electronic Health Records (EHR) Service
@@ -52,6 +53,7 @@ The project consists of the following microservices:
 - **Responsibilities**:
     - Persisting encounters, medical histories, diagnoses, prescriptions, lab results, signed notes, and vaccination records.
     - Importing external laboratory results from LIS-style payloads.
+    - Versioning terminology-validated observations, allergies, problems, administrations, orders/results, care plans, documents, imaging, referrals, and discharge summaries with provenance.
 
 ### 8. Insurance & Claims Service
 - **Role**: Insurance administration.
@@ -65,6 +67,7 @@ The project consists of the following microservices:
     - Persisting and dispatching email, SMS, and push notifications through a configurable provider.
     - Retrying failed deliveries with backoff and dead-letter status.
     - Supporting appointment reminders, billing alerts, and MFA code delivery.
+    - Applying localized templates, preferences, quiet hours, opt-out rules, provider callbacks, inspection, and replay.
 
 ### 10. Inventory & Pharmacy Service
 - **Role**: Supply and medication inventory control.
@@ -95,6 +98,14 @@ The project consists of the following microservices:
 - **Responsibilities**:
     - Cloud infrastructure management (likely using AWS CDK).
     - Shared deployment scripts and configurations.
+
+### Shared Reliability Core
+
+- **Role**: Reusable durable messaging support for data-owning services.
+- **Responsibilities**:
+    - Transactional outbox publishing with retry, dead-letter state, replay, reconciliation, and retention.
+    - Transactional consumer inbox deduplication with failed-message inspection and stale-claim recovery.
+    - ADMIN-only operational endpoints documented in `docs/reliable-messaging.md`.
 
 ## Technology Stack
 - **Framework**: Spring Boot (Java)

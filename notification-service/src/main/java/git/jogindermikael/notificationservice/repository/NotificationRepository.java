@@ -7,6 +7,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface NotificationRepository extends JpaRepository<NotificationMessage, UUID> {
     List<NotificationMessage> findByRecipientIdOrderByCreatedAt(UUID recipientId);
@@ -15,4 +17,8 @@ public interface NotificationRepository extends JpaRepository<NotificationMessag
             Collection<String> statuses, Instant now);
 
     Optional<NotificationMessage> findByCorrelationIdAndTemplate(UUID correlationId, String template);
+
+    Optional<NotificationMessage> findByProviderMessageId(String providerMessageId);
+
+    Page<NotificationMessage> findByStatus(String status, Pageable pageable);
 }

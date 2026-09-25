@@ -5,15 +5,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import git.jogindermikael.reliability.ReliableEventInbox;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 @Component
 public class PatientLifecycleConsumer {
   private final ObjectMapper mapper;
   private final JdbcTemplate jdbc;
+  private final ReliableEventInbox inbox;
 
-  public PatientLifecycleConsumer(ObjectMapper mapper, JdbcTemplate jdbc) {
+  public PatientLifecycleConsumer(ObjectMapper mapper, JdbcTemplate jdbc, ReliableEventInbox inbox) {
     this.mapper = mapper;
     this.jdbc = jdbc;
+    this.inbox = inbox;
   }
 
   @KafkaListener(topics = "patient.events.v1", groupId = "patient-portal-service")
@@ -28,10 +33,18 @@ public class PatientLifecycleConsumer {
     String patientId = event.path("patientId").asText();
     String status = event.path("payload").path("status").asText();
     if (!patientId.isBlank() && !status.isBlank()) {
-      jdbc.update(
-          "UPDATE portal_identity SET patient_status=? WHERE patient_id=?",
-          status,
-          java.util.UUID.fromString(patientId));
+      String rawEventId = event.path("eventId").asText();
+      UUID eventId =
+          rawEventId.isBlank()
+              ? UUID.nameUUIDFromBytes(
+                  ("legacy-patient-event:" + new String(value, StandardCharsets.UTF_8))
+                      .getBytes(StandardCharsets.UTF_8))
+              : UUID.fromString(rawEventId);
+      inbox.processOnce(eventId, "patient-portal-service", eventType, value,
+          () -> jdbc.update(
+              "UPDATE portal_identity SET patient_status=? WHERE patient_id=?",
+              status,
+              UUID.fromString(patientId)));
     }
   }
 }

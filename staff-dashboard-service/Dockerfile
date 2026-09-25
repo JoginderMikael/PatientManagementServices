@@ -4,6 +4,7 @@ FROM maven:3.9.9-eclipse-temurin-21 AS builder
 WORKDIR /workspace
 
 COPY pom.xml .
+COPY reliability-core/pom.xml reliability-core/pom.xml
 COPY api-gateway/pom.xml api-gateway/pom.xml
 COPY auth-service/pom.xml auth-service/pom.xml
 COPY patient-service/pom.xml patient-service/pom.xml
@@ -28,6 +29,7 @@ RUN --mount=type=cache,id=patient-management-maven-v2,target=/root/.m2,sharing=l
     done; \
     exit 1
 
+COPY reliability-core/src reliability-core/src
 COPY staff-dashboard-service/src staff-dashboard-service/src
 
 RUN --mount=type=cache,id=patient-management-maven-v2,target=/root/.m2,sharing=locked \

@@ -157,7 +157,6 @@ export function PharmacyOperationsPage() {
               title="Dispense medication"
               description={`Dispense prescription ${form.prescriptionId || "not selected"} only after reviewing current safety and stock state.`}
               confirmLabel="Confirm dispense"
-              disabled={!form.prescriptionId || dispense.isPending}
               onConfirm={() => dispense.mutate()}
             />
           </div>

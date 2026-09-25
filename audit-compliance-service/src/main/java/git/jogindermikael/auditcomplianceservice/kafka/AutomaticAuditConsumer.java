@@ -7,15 +7,18 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.UUID;
+import git.jogindermikael.reliability.ReliableEventInbox;
 
 @Component
 public class AutomaticAuditConsumer {
     private final AuditComplianceService service;
     private final ObjectMapper mapper;
+    private final ReliableEventInbox inbox;
 
-    public AutomaticAuditConsumer(AuditComplianceService service, ObjectMapper mapper) {
+    public AutomaticAuditConsumer(AuditComplianceService service, ObjectMapper mapper, ReliableEventInbox inbox) {
         this.service = service;
         this.mapper = mapper;
+        this.inbox = inbox;
     }
 
     @KafkaListener(topics = { "patient.events.v1", "billing.events.v1", "appointment.events.v1", "ehr.events.v1",
@@ -24,12 +27,14 @@ public class AutomaticAuditConsumer {
         JsonNode event = mapper.readTree(value);
         if (event.path("schemaVersion").asInt() != 1)
             return;
-        service.append(uuid(event, "eventId"), text(event, "actorId", "system"), text(event, "actorRole", "SYSTEM"),
-                text(event, "eventType", "UNKNOWN"), nullableUuid(event, "patientId"),
-                text(event, "aggregateType", "HTTP"), nullableUuid(event, "aggregateId"),
-                text(event, "source", "unknown-service"), text(event, "outcome", "SUCCESS"),
-                text(event, "reason", null), text(event, "endpoint", null), text(event, "requestId", null),
-                text(event, "correlationId", null), Instant.parse(text(event, "occurredAt", Instant.now().toString())));
+        UUID eventId = uuid(event, "eventId");
+        inbox.processOnce(eventId, "audit-compliance-service", text(event, "eventType", "UNKNOWN"), value,
+                () -> service.append(eventId, text(event, "actorId", "system"), text(event, "actorRole", "SYSTEM"),
+                        text(event, "eventType", "UNKNOWN"), nullableUuid(event, "patientId"),
+                        text(event, "aggregateType", "HTTP"), nullableUuid(event, "aggregateId"),
+                        text(event, "source", "unknown-service"), text(event, "outcome", "SUCCESS"),
+                        text(event, "reason", null), text(event, "endpoint", null), text(event, "requestId", null),
+                        text(event, "correlationId", null), Instant.parse(text(event, "occurredAt", Instant.now().toString()))));
     }
 
     private UUID uuid(JsonNode node, String field) {

@@ -1,7 +1,7 @@
 PATIENT MANAGEMENT SERVICES - CURRENT ARCHITECTURE
 ==================================================
 
-Last verified: 2026-09-10
+Last verified: 2026-09-25
 
 SYSTEM SHAPE
 ------------
@@ -49,11 +49,15 @@ billing-service
 
 appointment-service
   Owns schedules, appointments, waitlists, virtual consultation references, and
-  appointment consent forms.
+  appointment consent forms. Recurring booking, atomic rescheduling, rooms and
+  equipment, check-in/out, no-show handling, and waitlist promotion are supported.
 
 ehr-service
   Owns encounters, histories, diagnoses, prescriptions, laboratory results,
-  notes, vaccinations, and clinical safety workflows.
+  notes, vaccinations, and clinical safety workflows. Structured, terminology-
+  validated clinical resources cover observations, allergies, problems, medication
+  administrations, orders/results, care plans, documents, imaging, referrals, and
+  discharge summaries with immutable amendments and hash-linked provenance.
 
 insurance-service
   Owns policies, eligibility evidence, claims, adjudication, remittance, and
@@ -64,7 +68,9 @@ inventory-pharmacy-service
   and medication billing coordination.
 
 notification-service
-  Owns queued notification messages and delivery-oriented workflows.
+  Owns queued notification messages and delivery-oriented workflows, including
+  localized templates, recipient preferences, channel opt-out, quiet hours,
+  provider callbacks, dead-letter inspection, and replay.
 
 staff-dashboard-service
   Owns operational rounds, patient chart summaries, staff tasks, handoffs,
@@ -142,12 +148,13 @@ CONSISTENCY MODEL
 -----------------
 
 There is no distributed database transaction. The system uses local
-transactions, a patient transactional outbox, versioned Kafka events, and
-idempotent consumers.
+transactions, service-owned transactional outboxes, versioned Kafka events, and
+durable idempotent consumer inboxes.
 
 Guaranteed locally:
 
-- patient row and patient outbox event commit together;
+- domain mutations and reliable outbox events commit together where the shared
+  reliability module has been adopted;
 - patient registration retries can use Idempotency-Key;
 - patient email and MRN constraints protect the patient database;
 - billing creates at most one account per patient;
@@ -167,7 +174,8 @@ Still requiring future work:
 - immediate revocation or auth lifecycle-event propagation for already-issued
   access tokens (current access tokens expire after their configured short TTL);
 - a durable enrollment saga with visible PENDING/FAILED states;
-- dead-letter/replay tooling and automated reconciliation dashboards;
+- automated reliability dashboards and alert routing (operator inspection,
+  replay, stale-claim reconciliation, and retention are implemented);
 - consistent patient existence checks in every patient-referencing service;
 - complete merge/archive propagation policies for all downstream records; and
 - patient-safe demographic/clinical profile projection through the portal.

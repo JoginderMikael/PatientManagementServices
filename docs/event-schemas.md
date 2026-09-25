@@ -31,9 +31,9 @@ The envelope contains operational identifiers only. Sensitive clinical data, nam
 | `notification.requests.v1` | workflow services or integrations | `NOTIFICATION_REQUESTED` | notification |
 | `audit.events.v1` | automatic HTTP audit filters | `HTTP_<METHOD>` | audit |
 | `billing.events.v1` | reserved for billing | Future billing lifecycle events | audit accepts v1 |
-| `appointment.events.v1` | reserved for appointment | Future appointment lifecycle events | audit accepts v1 |
-| `ehr.events.v1` | reserved for EHR | Future clinical workflow events without clinical content | audit accepts v1 |
-| `notification.events.v1` | reserved for notification | Future delivery lifecycle events | audit accepts v1 |
+| `appointment.events.v1` | appointment-service reliable outbox | Booking, rescheduling, cancellation, arrival, completion, no-show and waitlist promotion | audit accepts v1 |
+| `ehr.events.v1` | EHR reliable outbox | Structured clinical-resource creation/amendment metadata without clinical payloads | audit accepts v1 |
+| `notification.events.v1` | notification reliable outbox | Notification queue and delivery lifecycle metadata | audit accepts v1 |
 
 ## Compatibility policy
 
@@ -43,3 +43,6 @@ The envelope contains operational identifiers only. Sensitive clinical data, nam
 - Consumers reject or ignore unsupported major versions and must not guess how to interpret them.
 - Failed outbox publications remain pending and are retried. A row is marked published only after Kafka acknowledges the send.
 - Consumers must be idempotent. The billing consumer additionally relies on database uniqueness for patient and command keys; the audit consumer persists `sourceEventId` uniquely.
+
+Dead-letter, replay, retention, backfill, compatibility and recovery procedures are defined in
+[Reliable messaging operations](reliable-messaging.md).

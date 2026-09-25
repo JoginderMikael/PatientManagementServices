@@ -7,7 +7,6 @@ import { StatusBadge } from "../../../components/data/StatusBadge";
 import { Table } from "../../../components/data/Table";
 import { Field, TextField } from "../../../components/forms/FormControls";
 import { PageHeader } from "../../../components/PageHeader";
-import { ConfirmAction } from "../../../components/safety/ConfirmAction";
 import {
   createBillingAccount,
   createInvoice,
@@ -266,7 +265,10 @@ export function BillingOperationsPage() {
           title="Post payment"
           description={`Invoice ${posting.invoiceId}`}
         >
-          <form className="form-grid" onSubmit={(e) => e.preventDefault()}>
+          <form
+            className="form-grid"
+            onSubmit={(e) => submit(e, () => post.mutate())}
+          >
             <Field id="posting-reference" label="Payment reference" required>
               <TextField
                 required
@@ -289,18 +291,9 @@ export function BillingOperationsPage() {
               />
             </Field>
             <div>
-              <ConfirmAction
-                triggerLabel="Review payment"
-                title="Post payment"
-                description={`Post ${posting.amount || "the entered amount"} to invoice ${posting.invoiceId} using reference ${posting.reference || "not entered"}. Overpayment and reused mismatched references are rejected.`}
-                confirmLabel="Post payment"
-                disabled={
-                  !posting.reference ||
-                  Number(posting.amount) <= 0 ||
-                  post.isPending
-                }
-                onConfirm={() => post.mutate()}
-              />
+              <Button type="submit" disabled={post.isPending}>
+                Post payment
+              </Button>
             </div>
           </form>
           <MutationStatus

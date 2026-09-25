@@ -1,19 +1,18 @@
 package git.jogindermikael.patientportalservice.audit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import git.jogindermikael.reliability.DurableEventOutbox;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -22,15 +21,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 @ConditionalOnProperty(name = "app.audit.enabled", havingValue = "true", matchIfMissing = true)
 public class AutomaticAuditFilter extends OncePerRequestFilter {
-  private final KafkaTemplate<String, byte[]> kafka;
+  private final DurableEventOutbox outbox;
   private final ObjectMapper mapper;
   private final String source;
 
   public AutomaticAuditFilter(
-      KafkaTemplate<String, byte[]> kafka,
+      DurableEventOutbox outbox,
       ObjectMapper mapper,
       @Value("${spring.application.name}") String source) {
-    this.kafka = kafka;
+    this.outbox = outbox;
     this.mapper = mapper;
     this.source = source;
   }
@@ -38,7 +37,10 @@ public class AutomaticAuditFilter extends OncePerRequestFilter {
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
     String path = request.getRequestURI();
-    return path.startsWith("/actuator") || path.contains("api-docs") || path.startsWith("/swagger");
+    return path.startsWith("/actuator")
+        || path.startsWith("/internal/reliability")
+        || path.contains("api-docs")
+        || path.startsWith("/swagger");
   }
 
   @Override
@@ -77,12 +79,9 @@ public class AutomaticAuditFilter extends OncePerRequestFilter {
       event.put("requestId", headerOrId(request, "X-Request-Id", eventId.toString()));
       event.put("endpoint", request.getMethod() + " " + request.getRequestURI());
       event.put("outcome", response.getStatus() < 400 ? "SUCCESS" : "FAILURE");
-      kafka.send(
-          "audit.events.v1",
-          eventId.toString(),
-          mapper.writeValueAsString(event).getBytes(StandardCharsets.UTF_8));
-    } catch (Exception ignored) {
-      logger.warn("Automatic audit event could not be published", ignored);
+      outbox.appendRaw("audit.events.v1", eventId.toString(), mapper.writeValueAsString(event));
+    } catch (Exception exception) {
+      logger.error("Automatic audit event could not be persisted", exception);
     }
   }
 

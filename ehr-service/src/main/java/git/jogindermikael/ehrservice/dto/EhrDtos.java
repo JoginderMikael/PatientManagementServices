@@ -7,6 +7,8 @@ import java.time.LocalDate;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
+import java.util.Set;
 
 public final class EhrDtos {
     private EhrDtos() {
@@ -20,4 +22,12 @@ public final class EhrDtos {
     public record ExternalLabResultRequest(@NotNull UUID patientId, @NotBlank String externalSystem, @NotBlank String testName, @NotBlank String resultSummary, @NotNull LocalDate collectedOn, UUID encounterId) {}
     public record ClinicalNoteRequest(@NotNull UUID encounterId, @NotNull UUID patientId, @NotNull UUID clinicianId, @NotBlank String body) {}
     public record VaccinationRequest(@NotNull UUID patientId, @NotBlank String vaccine, @NotNull LocalDate administeredOn, @NotBlank String lotNumber) {}
+    public record TerminologyCodeRequest(@NotBlank String systemUri, @NotBlank String code,
+            @NotBlank String display, @NotNull Set<String> resourceTypes) {}
+    public record ClinicalResourceRequest(@NotNull UUID patientId, UUID encounterId,
+            @NotBlank String resourceType, @NotBlank String status, @NotBlank String codeSystem,
+            @NotBlank String code, @NotBlank String display, @NotNull Instant effectiveAt,
+            @NotNull Map<String, Object> payload) {}
+    public record ClinicalAmendmentRequest(@NotBlank String reason, @NotBlank String status,
+            @NotNull Map<String, Object> payload) {}
 }

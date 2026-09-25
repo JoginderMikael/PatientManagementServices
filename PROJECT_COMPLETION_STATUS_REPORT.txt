@@ -1,0 +1,380 @@
+PATIENT MANAGEMENT SERVICES - PROJECT COMPLETION STATUS REPORT
+==============================================================
+
+Assessment date: 2026-09-11
+Repository: C:\S_Projects\PatientManagementServices
+
+
+1. EXECUTIVE SUMMARY
+--------------------
+
+The project has a credible, working workflow foundation across a React frontend,
+an API gateway, thirteen Spring Boot backend applications, PostgreSQL persistence,
+Kafka integration, Docker Compose, observability scaffolding, and automated tests.
+
+It should not yet be described as production-ready for real patient data. Most of
+the remaining work is not basic CRUD development. It is concentrated in identity,
+authorization depth, production transport security, external healthcare/payment
+integrations, reliability operations, clinical-model depth, deployment validation,
+and formal privacy/security approval.
+
+Estimated completion:
+
+  Area                         Functional/MVP       Production-ready
+  ---------------------------  -------------------  -------------------
+  Frontend                     90-95% complete      80-85% complete
+  Backend                      80-85% complete      55-65% complete
+  Whole integrated product     80-85% complete      60-70% complete
+
+The percentages are planning estimates, not measurements from lines of code. They
+weight security, safety, integration, validation, and operational risk more heavily
+than the number of screens or endpoints already implemented.
+
+Indicative remaining effort, assuming requirements and external dependencies are
+available:
+
+  - Frontend: approximately 2-4 developer-weeks, plus approval lead time.
+  - Backend/platform: approximately 4-8 months for a small experienced team.
+  - Backend/platform for one developer: approximately 9-15 months.
+  - Partner certification, penetration testing, and organizational approvals can
+    extend the calendar independently of engineering effort.
+
+
+2. EVIDENCE AND CURRENT BUILD HEALTH
+------------------------------------
+
+Frontend verification performed on 2026-09-11:
+
+  - Strict TypeScript check passed.
+  - All 8 test suites passed: 69 tests passed, 0 failed.
+  - Optimized production build passed.
+  - JavaScript and CSS gzip budgets passed.
+  - Source-map rejection passed.
+  - Runtime CSP, security-header, cache-control, and missing-file checks passed.
+  - The live frontend/API contract comparison could not run because the gateway was
+    not listening on localhost:4004. This is an environment prerequisite, not proof
+    of contract success or failure.
+
+Backend verification performed on 2026-09-11:
+
+  - The complete 16-module Maven reactor was executed.
+  - The root project, API gateway, thirteen backend applications, and infrastructure
+    module compiled and completed their module-level tests successfully.
+  - The final integration-tests module failed two assertions.
+  - Aggregate result: 78 tests, 66 passed, 10 intentionally skipped, 2 failed.
+  - Both failures are migration-count expectations. Auth and patient-portal now each
+    have two production migrations, while DatabaseMigrationsTest still expects one.
+    The migrations themselves applied successfully to PostgreSQL 16 Testcontainers.
+  - The reactor is therefore currently RED until those assertions are updated and
+    the full build passes again.
+
+Maintenance warnings observed during the backend build:
+
+  - The Spring Cloud Gateway dependency and route configuration keys are deprecated
+    and should be migrated to the current server-webflux names.
+  - Multiple JPA services use the default open-in-view behavior; this should be
+    explicitly disabled and transaction/query behavior verified.
+  - Mockito's dynamic agent attachment needs a forward-compatible test setup for
+    future JDK releases.
+  - Local tests ran with Java 25 while compilation targets Java 21. CI and release
+    environments should verify and enforce the intended supported runtime matrix.
+
+
+3. FRONTEND STATUS
+------------------
+
+Implemented:
+
+  - Authentication, sign-out, session invalidation, protected routing, role-filtered
+    navigation, forbidden/not-found handling, and token-bound patient self-scope.
+  - Shared patient and staff shells, responsive navigation, accessible feedback,
+    forms, tables, tabs, dialogs, safety confirmations, and patient context banner.
+  - Patient portal overview, appointment request/cancellation, record request and
+    fulfilled download, payment submission, and portal profile display.
+  - Staff work queue, claiming, handoff, comments, completion, history, escalation,
+    patient registry/context, appointment scheduling, and clinical chart workflows.
+  - Staff billing, insurance, pharmacy, inventory, notifications, compliance,
+    audit-evidence, and analytics/reporting routes.
+  - Loading, empty, denied, failure, conflict, retry, and safety-sensitive mutation
+    behavior for the implemented release scope.
+  - PHI-safe telemetry allowlisting, production security headers, cache policies,
+    bundle budgets, synthetic role-family tests, and accessibility checks.
+
+Remaining frontend implementation:
+
+  1. Complete proxy-access management. The backend can create/revoke a known grant,
+     but the UI lacks a safe verified-proxy and existing-grant listing contract.
+  2. Add invitation-based patient enrollment and activation screens after the
+     corresponding backend workflow is implemented.
+  3. Add deferred specialist creation workflows where product scope requires them:
+     policy enrollment, claim/remittance entry, medication catalogue creation,
+     inbound prescription entry, pharmacy invoice initiation, consent creation,
+     and trend/cohort authoring.
+  4. Replace raw UUID entry in billing/pharmacy with a minimum-necessary patient
+     directory or work-item lookup contract.
+  5. Introduce generated OpenAPI types/client and make contract drift a required CI
+     gate once the deployed gateway contracts are stable.
+  6. Complete manual keyboard, screen-reader, browser, mobile, and responsive testing.
+  7. Run critical journeys and cross-patient/cross-role denial tests against the
+     actual candidate deployment, not only synthetic MSW fixtures.
+  8. Run dependency and built-image vulnerability scans and resolve release-blocking
+     findings.
+  9. Obtain named privacy, security, and release approvals.
+
+
+4. BACKEND STATUS
+-----------------
+
+Implemented foundation and workflows:
+
+  - Secured API gateway and role-protected resource services.
+  - JWT issuer/audience/signature validation at the gateway and backend services.
+  - Durable auth users, patient MPI/lifecycle, billing, scheduling, EHR, notification,
+    audit/compliance, insurance, pharmacy, patient-portal, and staff-task workflows.
+  - Service-owned PostgreSQL schemas and Flyway migrations for eleven data-owning
+    services; H2 is limited to isolated service tests.
+  - Idempotent patient registration, deterministic duplicate detection, merge history,
+    lifecycle changes, and a transactional patient outbox.
+  - Billing accounts, invoices, immutable postings, concurrency-safe payments, and
+    reconciliation workflows.
+  - Conflict-safe appointment reservations and persisted schedules, waitlists,
+    virtual consultations, and consent-form records.
+  - Encounters, histories, diagnoses, prescriptions, labs, clinical notes,
+    vaccinations, note signing, encounter closure, and baseline medication safety.
+  - Durable policies, eligibility evidence, claims, adjudication, remittance, and
+    billing reconciliation.
+  - Durable inventory, batches, movements, medication review, dispensing, stock
+    consumption, and medication billing coordination.
+  - Durable patient portal ownership mappings, scoped proxy grants, requests,
+    releases, downloads, payments, and lifecycle suspension.
+  - Role-specific staff queues, claim/handoff/comments/history, due dates, and
+    scheduled escalation.
+  - Append-only audit evidence, privacy consent, emergency access/review, compliance
+    cases, legal holds, retention workflows, and a scoped FHIR R4 Patient API.
+  - Docker Compose, health/metrics endpoints, Prometheus/Grafana configuration,
+    non-root application containers, SBOM/security scanning baseline, and synthetic
+    PostgreSQL backup/restore validation.
+
+Remaining backend work:
+
+4.1 Identity and authentication
+
+  - Single-use invitation and activation tokens.
+  - Verified email/phone contact workflow and MFA enrollment/challenges.
+  - Password reset, refresh-token rotation, revocation/logout, account lockout, and
+    device/session management.
+  - Production OIDC/JWKS, asymmetric signing, signing-key rotation, and selected IdP
+    integration.
+  - Immediate auth lifecycle propagation for already-issued sessions.
+  - Durable patient-enrollment/provisioning saga with PENDING/FAILED states,
+    compensation, replay, reconciliation, and operator visibility.
+
+4.2 Authorization and privacy enforcement
+
+  - Platform-wide patient-, facility-, tenant-, purpose-, consent-, and relationship-
+    based authorization. Current role checks are not sufficient for production PHI.
+  - Enforce consent and break-glass decisions beyond the scoped FHIR Patient read.
+  - Consistent patient existence/status checks in every patient-referencing service.
+  - Complete patient merge, archive, restriction, and revocation propagation policies.
+  - Patient-safe demographic and clinical profile projection for portal use.
+
+4.3 Gateway and transport security
+
+  - Production ingress TLS and HTTP-to-HTTPS enforcement.
+  - TLS for PostgreSQL and Kafka.
+  - gRPC TLS/mTLS, deadlines, retry policy, handshake/plaintext-denial tests, certificate
+    rotation, and expiry alerts.
+  - Service-to-service identity/authentication and remaining HTTP mTLS.
+  - Gateway rate limiting, production CORS, request-size limits, request IDs, security
+    controls, and environment/discovery-driven routes.
+  - Migrate deprecated Spring Cloud Gateway dependencies and route keys.
+
+4.4 Reliability, messaging, and consistency
+
+  - Extend transactional outbox/inbox delivery patterns to additional domain services.
+  - Replace the remaining best-effort HTTP audit publisher with durable delivery.
+  - Dead-letter inspection, poison-message handling, replay tooling, and automated
+    reconciliation dashboards.
+  - Formal event retention, schema compatibility, backfill, and recovery procedures.
+  - Remove avoidable coarse locks, add pagination, and validate realistic concurrency
+    and capacity targets.
+
+4.5 Clinical and operational depth
+
+  - Expand EHR resources to observations/vitals, structured allergies/problems,
+    medication administration, orders/results, care plans, documents, imaging,
+    referrals, discharge summaries, amendments, addenda, co-signatures, corrected
+    results, provenance, retention, and non-repudiation.
+  - Integrate validated clinical terminology and drug/allergy/interaction knowledge.
+  - Complete appointment types, locations, rooms/equipment, provider availability,
+    recurrence, rescheduling, check-in/out, no-show, waitlist promotion, and reminder
+    event integration.
+  - Add notification templates, channel preferences, quiet hours, localization,
+    opt-out, consent-aware PHI rules, delivery callbacks, and production adapters.
+
+4.6 External interoperability and financial integrations
+
+  - Real payer/clearinghouse eligibility, authorization, claim, denial, appeal,
+    remittance, and coordination-of-benefits exchange.
+  - Real payment processor/card settlement, refunds, chargebacks, and reconciliation.
+  - HL7 v2, X12, DICOM/DICOMweb, partner APIs, and secure file-drop adapters.
+  - Broader FHIR resources, implementation-guide profiles, validation, and partner
+    conformance/acceptance testing.
+  - Secure partner credential storage, rotation, auditing, and sandbox/certification.
+
+These items cannot be completed responsibly until the owner supplies the partner,
+jurisdiction, implementation-guide, credential, and acceptance requirements recorded
+in docs/phase4-deployment-inputs.md.
+
+4.7 Production infrastructure, operations, and compliance
+
+  - Final production IaC for private networking, least-privilege IAM, service
+    discovery, managed databases/Kafka, TLS, WAF, secrets, and deployment pipelines.
+  - Define SLOs, capacity requirements, data residency, retention periods, recovery
+    point objective (RPO), and recovery time objective (RTO).
+  - Encrypted scheduled backups, off-site storage, storage-level legal holds,
+    production-scale restore/failover drills, and cross-service/Kafka recovery checks.
+  - Production structured-log and trace exporters with verified PHI exclusion.
+  - Autoscaling, HA/multi-region if required, load/soak tests, chaos tests, alert
+    validation, incident exercises, and operational runbooks.
+  - Container/OS vulnerability scanning, independent penetration testing, remediation,
+    privacy/security risk assessment, and formal production approvals.
+
+4.8 Analytics and reporting
+
+  - Durable de-identified analytics ingestion and warehouse/lake storage.
+  - Scheduled aggregation/reporting jobs, governed cohort definitions, quality
+    measures, and regulatory report generation.
+  - Small-cell suppression and data-governance enforcement at the data layer.
+  - Production retention, lineage, access review, and deletion policies.
+
+
+5. RECOMMENDED COMPLETION PLAN
+------------------------------
+
+Priority 0 - Restore a trustworthy green baseline (approximately 1-3 days)
+
+  1. Update the two migration-count assertions and rerun mvn -B verify.
+  2. Run the frontend contract check against the same running backend revision.
+  3. Resolve or ticket every new framework warning; migrate deprecated gateway keys.
+  4. Record exact backend/frontend revisions and CI artifacts.
+
+Exit criteria:
+
+  - Complete Maven reactor is green with no unexplained skips.
+  - Frontend typecheck, 69 tests, release build, runtime checks, and contract check pass.
+  - Docker Compose configuration and clean-environment startup pass.
+
+Priority 1 - Close production identity and authorization gaps (approximately 4-8 weeks)
+
+  1. Select the production IdP and implement OIDC/JWKS, MFA, token/session lifecycle,
+     and service identities.
+  2. Implement invitation-based patient activation and the durable provisioning saga.
+  3. Define and enforce facility/patient/purpose/consent authorization centrally and
+     in every data-owning service.
+  4. Complete lifecycle propagation, reconciliation, and negative authorization tests.
+
+Exit criteria:
+
+  - No production patient credential is issued through the temporary-password flow.
+  - Cross-patient, cross-facility, stale-session, revoked-proxy, and break-glass tests
+    fail closed throughout the gateway and downstream services.
+
+Priority 2 - Secure and harden distributed operation (approximately 4-8 weeks,
+overlapping Priority 1 where staffing permits)
+
+  1. Roll out TLS/mTLS in the documented order.
+  2. Add durable audit/event delivery, dead-letter/replay, and reconciliation tooling.
+  3. Configure production observability, SLOs, alerts, pagination, and capacity tests.
+  4. Finalize backup, recovery, retention, and legal-hold storage controls.
+
+Exit criteria:
+
+  - Plaintext service traffic is denied in the production profile.
+  - Event/audit loss and poison-message scenarios are detectable and recoverable.
+  - Restore and failover exercises meet approved RPO/RTO targets.
+
+Priority 3 - Finish release-scope product depth (approximately 4-10 weeks)
+
+  1. Complete the agreed appointment, clinical, portal, notification, billing,
+     pharmacy, and analytics workflows.
+  2. Add the matching frontend increments and generated API clients.
+  3. Run integrated role-family, patient-safety, concurrency, accessibility, and
+     device/browser journeys with synthetic data.
+
+Exit criteria:
+
+  - Every release-scope workflow has an owned contract, authorization policy,
+    migration, observability, negative tests, recovery behavior, and user journey.
+
+Priority 4 - Activate external integrations and production release (schedule depends
+on partners and approving authorities)
+
+  1. Implement only the partner transports selected in the completed deployment-input
+     matrices.
+  2. Complete payer/payment/clinical partner certification and reconciliation tests.
+  3. Perform vulnerability/image scanning, independent penetration testing, privacy
+     assessment, operational rehearsal, and remediation.
+  4. Obtain named privacy, security, clinical/product, and release approvals.
+
+Exit criteria:
+
+  - No unresolved severity-one security, privacy, safety, availability, accessibility,
+    or data-integrity finding.
+  - Partner acceptance, disaster recovery, operational readiness, and approval
+    evidence is linked to the exact release revision.
+
+
+6. DECISIONS REQUIRED FROM THE OWNER
+------------------------------------
+
+Engineering cannot close the following items without explicit decisions:
+
+  - Deployment jurisdiction and applicable healthcare/privacy regulations.
+  - Production identity provider and MFA/assurance policy.
+  - Tenant/facility model and patient-access/consent policy.
+  - Required FHIR implementation guide and HL7/X12/DICOM partners.
+  - Payer, clearinghouse, payment, messaging, and imaging providers.
+  - Approved cloud/region, data-residency rules, retention periods, RPO/RTO, SLOs,
+    expected volume, and HA/multi-region requirements.
+  - Required release-scope clinical resources and workflows.
+  - Named privacy, security, clinical/product, and release authorities.
+
+
+7. DEFINITION OF FULL PROJECT COMPLETION
+----------------------------------------
+
+The project should be called fully complete only when:
+
+  - All release-scope frontend and backend workflows are implemented against versioned,
+    verified contracts.
+  - The entire automated build is green from a clean checkout.
+  - Authorization is enforced by the backend at role, patient, facility, purpose,
+    consent, proxy, and emergency-access levels where applicable.
+  - Production transport, secrets, databases, messaging, storage, backup, recovery,
+    observability, and deployment pipelines are active and tested.
+  - Required external integrations have passed partner certification.
+  - Integrated security, privacy, clinical-safety, accessibility, browser/device,
+    performance, failure-recovery, and disaster-recovery tests pass.
+  - All release-blocking findings are resolved or formally accepted with an owner and
+    expiry date.
+  - Authorized privacy, security, clinical/product, and release personnel approve the
+    exact deployment revision.
+
+
+8. SOURCE DOCUMENTS
+-------------------
+
+  - ENTERPRISE_PATIENT_MANAGEMENT_COMPLETION_PLAN.txt
+  - ARCHITECTURE.txt
+  - PATIENT_IDENTITY_AND_PROVISIONING_REVIEW.txt
+  - docs/production-foundation.md
+  - docs/phase3-workflows.md
+  - docs/phase4-compliance.md
+  - docs/phase4-deployment-inputs.md
+  - patient-portal-frontend/ARCHITECTURE.txt
+  - patient-portal-frontend/API.txt
+  - patient-portal-frontend/RELEASE_READINESS.txt
+
+
+END OF REPORT
