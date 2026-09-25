@@ -1,6 +1,6 @@
 package git.jogindermikael.ehrservice.repository;
 
-import git.jogindermikael.ehrservice.model.ClinicalResourceModels.ClinicalProvenance;
+import git.jogindermikael.ehrservice.model.ClinicalProvenance;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;

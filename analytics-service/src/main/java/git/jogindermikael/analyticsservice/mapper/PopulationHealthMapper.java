@@ -1,7 +1,7 @@
 package git.jogindermikael.analyticsservice.mapper;
 
-import git.jogindermikael.analyticsservice.dto.PopulationHealthDtos.*;
-import git.jogindermikael.analyticsservice.model.PopulationHealthModels.*;
+import git.jogindermikael.analyticsservice.dto.*;
+import git.jogindermikael.analyticsservice.model.*;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;

@@ -1,7 +1,7 @@
 package git.jogindermikael.staffdashboardservice.controller;
 
-import git.jogindermikael.staffdashboardservice.dto.StaffDashboardDtos.*;
-import git.jogindermikael.staffdashboardservice.model.StaffDashboardModels.*;
+import git.jogindermikael.staffdashboardservice.dto.*;
+import git.jogindermikael.staffdashboardservice.model.*;
 import git.jogindermikael.staffdashboardservice.service.StaffDashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

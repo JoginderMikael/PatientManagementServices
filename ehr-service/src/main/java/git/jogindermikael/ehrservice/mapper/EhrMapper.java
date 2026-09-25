@@ -1,7 +1,7 @@
 package git.jogindermikael.ehrservice.mapper;
 
-import git.jogindermikael.ehrservice.dto.EhrDtos.*;
-import git.jogindermikael.ehrservice.model.EhrModels.*;
+import git.jogindermikael.ehrservice.dto.*;
+import git.jogindermikael.ehrservice.model.*;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;

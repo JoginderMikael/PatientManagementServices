@@ -1,6 +1,6 @@
 package git.jogindermikael.ehrservice.repository;
 
-import git.jogindermikael.ehrservice.model.ClinicalResourceModels.TerminologyCode;
+import git.jogindermikael.ehrservice.model.TerminologyCode;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;

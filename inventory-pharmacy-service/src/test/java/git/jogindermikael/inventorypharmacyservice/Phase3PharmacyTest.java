@@ -2,7 +2,7 @@ package git.jogindermikael.inventorypharmacyservice;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import git.jogindermikael.inventorypharmacyservice.dto.InventoryPharmacyDtos.*;
+import git.jogindermikael.inventorypharmacyservice.dto.*;
 import git.jogindermikael.inventorypharmacyservice.service.InventoryPharmacyService;
 import java.math.BigDecimal;
 import java.time.*;
@@ -41,7 +41,7 @@ class Phase3PharmacyTest {
             new MedicationRequest(
                 null, "Synthetic-A", UUID.randomUUID().toString(), 0, new BigDecimal("2.00")));
     var receipt =
-        new InventoryPharmacyService.BatchReceipt(
+        new BatchReceipt(
             med.id(),
             UUID.randomUUID().toString(),
             LocalDate.now().plusDays(30),
@@ -56,7 +56,7 @@ class Phase3PharmacyTest {
     assertThrows(ResponseStatusException.class, () -> service.dispense(rx.id()));
     service.review(
         rx.id(),
-        new InventoryPharmacyService.SafetyReview(
+        new SafetyReview(
             med.id(), true, true, true, "Verified synthetic order"));
     assertEquals("DISPENSED", service.dispense(rx.id()).status());
     service.dispense(rx.id());
@@ -85,7 +85,7 @@ class Phase3PharmacyTest {
             new MedicationRequest(
                 null, "Synthetic-B", UUID.randomUUID().toString(), 0, BigDecimal.ONE));
     service.receive(
-        new InventoryPharmacyService.BatchReceipt(
+        new BatchReceipt(
             med.id(), "lot", LocalDate.now().plusDays(1), 5, UUID.randomUUID().toString()));
     jdbc.update(
         "UPDATE medication_batch SET expires_on=? WHERE medication_id=?",
@@ -96,7 +96,7 @@ class Phase3PharmacyTest {
             new PharmacyPrescriptionRequest(
                 UUID.randomUUID(), UUID.randomUUID(), "Synthetic-B", 1));
     service.review(
-        rx.id(), new InventoryPharmacyService.SafetyReview(med.id(), true, true, true, "Reviewed"));
+        rx.id(), new SafetyReview(med.id(), true, true, true, "Reviewed"));
     assertThrows(ResponseStatusException.class, () -> service.dispense(rx.id()));
     assertEquals(1, service.movements(med.id()).size());
   }
@@ -109,7 +109,7 @@ class Phase3PharmacyTest {
             new MedicationRequest(
                 null, "Synthetic-C", UUID.randomUUID().toString(), 0, BigDecimal.ONE));
     service.receive(
-        new InventoryPharmacyService.BatchReceipt(
+        new BatchReceipt(
             med.id(), "lot", LocalDate.now().plusDays(1), 1, UUID.randomUUID().toString()));
     var ids = new ArrayList<UUID>();
     for (int i = 0; i < 2; i++) {
@@ -119,7 +119,7 @@ class Phase3PharmacyTest {
                   UUID.randomUUID(), UUID.randomUUID(), "Synthetic-C", 1));
       service.review(
           rx.id(),
-          new InventoryPharmacyService.SafetyReview(med.id(), true, true, true, "Reviewed"));
+          new SafetyReview(med.id(), true, true, true, "Reviewed"));
       ids.add(rx.id());
     }
     try (var pool = java.util.concurrent.Executors.newFixedThreadPool(2)) {

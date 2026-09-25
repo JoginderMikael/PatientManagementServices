@@ -1,6 +1,6 @@
 package git.jogindermikael.ehrservice.repository;
 
-import git.jogindermikael.ehrservice.model.ClinicalResourceModels.ClinicalResource;
+import git.jogindermikael.ehrservice.model.ClinicalResource;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

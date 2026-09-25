@@ -1,5 +1,5 @@
 package git.jogindermikael.appointmentservice.repository;
-import git.jogindermikael.appointmentservice.model.AppointmentModels.DoctorSchedule;
+import git.jogindermikael.appointmentservice.model.DoctorSchedule;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.LocalDate;
 import java.util.Optional;

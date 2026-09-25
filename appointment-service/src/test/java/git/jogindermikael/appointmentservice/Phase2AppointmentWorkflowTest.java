@@ -1,6 +1,6 @@
 package git.jogindermikael.appointmentservice;
 
-import git.jogindermikael.appointmentservice.dto.AppointmentDtos.AppointmentRequest;
+import git.jogindermikael.appointmentservice.dto.AppointmentRequest;
 import git.jogindermikael.appointmentservice.service.AppointmentService;
 import org.junit.jupiter.api.Test; import org.springframework.beans.factory.annotation.Autowired; import org.springframework.boot.test.context.SpringBootTest; import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime; import java.util.UUID; import static org.junit.jupiter.api.Assertions.*;

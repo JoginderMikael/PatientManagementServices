@@ -2,7 +2,7 @@ package git.jogindermikael.notificationservice;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import git.jogindermikael.notificationservice.dto.NotificationDtos.*;
+import git.jogindermikael.notificationservice.dto.*;
 import git.jogindermikael.notificationservice.repository.NotificationRepository;
 import git.jogindermikael.notificationservice.service.NotificationService;
 import java.time.Instant;

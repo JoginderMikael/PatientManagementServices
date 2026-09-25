@@ -1,6 +1,6 @@
 package git.jogindermikael.patientportalservice.repository;
 
-import git.jogindermikael.patientportalservice.model.PatientPortalModels.*;
+import git.jogindermikael.patientportalservice.model.*;
 import java.time.*;
 import java.util.*;
 import org.springframework.jdbc.core.JdbcTemplate;

@@ -1,5 +1,7 @@
 package git.jogindermikael.billingservice.controller;
 
+import git.jogindermikael.billingservice.dto.InvoiceCommand;
+import git.jogindermikael.billingservice.dto.PaymentCommand;
 import git.jogindermikael.billingservice.service.RevenueService;
 import jakarta.validation.Valid;
 import java.util.*;
@@ -18,7 +20,7 @@ public class RevenueController {
 
   @PostMapping
   @PreAuthorize("hasAnyRole('ADMIN','BILLING_STAFF','PHARMACIST')")
-  public Map<String, Object> create(@Valid @RequestBody RevenueService.InvoiceCommand c) {
+  public Map<String, Object> create(@Valid @RequestBody InvoiceCommand c) {
     return service.invoice(c);
   }
 
@@ -34,7 +36,7 @@ public class RevenueController {
 
   @PostMapping("/{id}/postings")
   public Map<String, Object> post(
-      @PathVariable UUID id, @Valid @RequestBody RevenueService.PaymentCommand c) {
+      @PathVariable UUID id, @Valid @RequestBody PaymentCommand c) {
     return service.post(id, c);
   }
 }

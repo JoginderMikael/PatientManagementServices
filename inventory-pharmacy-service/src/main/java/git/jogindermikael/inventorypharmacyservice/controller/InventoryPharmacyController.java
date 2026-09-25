@@ -1,7 +1,7 @@
 package git.jogindermikael.inventorypharmacyservice.controller;
 
-import git.jogindermikael.inventorypharmacyservice.dto.InventoryPharmacyDtos.*;
-import git.jogindermikael.inventorypharmacyservice.model.InventoryPharmacyModels.*;
+import git.jogindermikael.inventorypharmacyservice.dto.*;
+import git.jogindermikael.inventorypharmacyservice.model.*;
 import git.jogindermikael.inventorypharmacyservice.service.InventoryPharmacyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -83,13 +83,13 @@ public class InventoryPharmacyController {
 
   @PostMapping("/batches")
   public java.util.Map<String, Object> receive(
-      @Valid @RequestBody InventoryPharmacyService.BatchReceipt c) {
+      @Valid @RequestBody BatchReceipt c) {
     return inventoryPharmacyService.receive(c);
   }
 
   @PostMapping("/prescriptions/{id}/review")
   public void review(
-      @PathVariable UUID id, @Valid @RequestBody InventoryPharmacyService.SafetyReview c) {
+      @PathVariable UUID id, @Valid @RequestBody SafetyReview c) {
     inventoryPharmacyService.review(id, c);
   }
 

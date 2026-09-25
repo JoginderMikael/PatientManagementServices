@@ -1,5 +1,8 @@
 package git.jogindermikael.auditcomplianceservice.controller;
 
+import git.jogindermikael.auditcomplianceservice.dto.Consent;
+import git.jogindermikael.auditcomplianceservice.dto.Emergency;
+import git.jogindermikael.auditcomplianceservice.dto.Review;
 import git.jogindermikael.auditcomplianceservice.service.PrivacyService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -14,12 +17,6 @@ import org.springframework.web.bind.annotation.*;
 public class PrivacyController {
     private final PrivacyService service;
     public PrivacyController(PrivacyService service) { this.service = service; }
-    public record Consent(@NotNull UUID patientId, @NotBlank @Size(max=200) String subject,
-                          @NotNull Instant expiresAt, @NotBlank @Size(max=200) String evidenceReference) {}
-    public record Emergency(@NotNull UUID patientId, @NotNull Instant expiresAt,
-                            @NotBlank @Size(max=200) String evidenceReference) {}
-    public record Review(@NotBlank @Size(max=200) String evidenceReference) {}
-
     @PostMapping("/consents")
     @PreAuthorize("hasRole('PRIVACY_OFFICER')")
     public Map<String,UUID> consent(@Valid @RequestBody Consent body, Principal actor) {

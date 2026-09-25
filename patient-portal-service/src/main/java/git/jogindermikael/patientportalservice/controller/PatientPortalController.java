@@ -1,7 +1,7 @@
 package git.jogindermikael.patientportalservice.controller;
 
-import git.jogindermikael.patientportalservice.dto.PatientPortalDtos.*;
-import git.jogindermikael.patientportalservice.model.PatientPortalModels.*;
+import git.jogindermikael.patientportalservice.dto.*;
+import git.jogindermikael.patientportalservice.model.*;
 import git.jogindermikael.patientportalservice.service.PatientPortalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

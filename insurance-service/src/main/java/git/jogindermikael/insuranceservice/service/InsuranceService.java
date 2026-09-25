@@ -1,8 +1,8 @@
 package git.jogindermikael.insuranceservice.service;
 
-import git.jogindermikael.insuranceservice.dto.InsuranceDtos.*;
+import git.jogindermikael.insuranceservice.dto.*;
 import git.jogindermikael.insuranceservice.mapper.InsuranceMapper;
-import git.jogindermikael.insuranceservice.model.InsuranceModels.*;
+import git.jogindermikael.insuranceservice.model.*;
 import git.jogindermikael.insuranceservice.repository.InsuranceRepository;
 import java.util.Comparator;
 import java.util.List;
@@ -128,16 +128,6 @@ public class InsuranceService {
             () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Active policy not found"));
   }
 
-  public record EligibilityEvidence(
-      @jakarta.validation.constraints.NotBlank String serviceCode,
-      @jakarta.validation.constraints.FutureOrPresent @jakarta.validation.constraints.NotNull
-          java.time.LocalDate validUntil,
-      @jakarta.validation.constraints.NotBlank String payerReference,
-      @jakarta.validation.constraints.NotNull
-          @jakarta.validation.constraints.DecimalMin("0")
-          @jakarta.validation.constraints.DecimalMax("100")
-          java.math.BigDecimal insurancePercent) {}
-
   public void recordEvidence(UUID policyId, EligibilityEvidence evidence) {
     repository.lock();
     policy(policyId);
@@ -150,13 +140,6 @@ public class InsuranceService {
         evidence.payerReference(),
         evidence.insurancePercent());
   }
-
-  public record RemittanceRequest(
-      @jakarta.validation.constraints.NotBlank String reference,
-      @jakarta.validation.constraints.NotNull
-          @jakarta.validation.constraints.DecimalMin(value = "0", inclusive = false)
-          @jakarta.validation.constraints.Digits(integer = 17, fraction = 2)
-          java.math.BigDecimal paidAmount) {}
 
   public java.util.Map<String, Object> remit(UUID id, RemittanceRequest request) {
     repository.lock();

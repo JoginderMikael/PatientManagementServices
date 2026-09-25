@@ -3,11 +3,13 @@ package git.jogindermikael.ehrservice.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import git.jogindermikael.ehrservice.dto.EhrDtos.ClinicalAmendmentRequest;
-import git.jogindermikael.ehrservice.dto.EhrDtos.ClinicalResourceRequest;
-import git.jogindermikael.ehrservice.dto.EhrDtos.TerminologyCodeRequest;
-import git.jogindermikael.ehrservice.model.ClinicalResourceModels.*;
-import git.jogindermikael.ehrservice.model.EhrModels.Encounter;
+import git.jogindermikael.ehrservice.dto.ClinicalAmendmentRequest;
+import git.jogindermikael.ehrservice.dto.ClinicalResourceBundle;
+import git.jogindermikael.ehrservice.dto.ClinicalResourceRequest;
+import git.jogindermikael.ehrservice.dto.IntegrityResult;
+import git.jogindermikael.ehrservice.dto.TerminologyCodeRequest;
+import git.jogindermikael.ehrservice.model.*;
+import git.jogindermikael.ehrservice.model.Encounter;
 import git.jogindermikael.ehrservice.repository.*;
 import git.jogindermikael.reliability.DurableEventOutbox;
 import java.nio.charset.StandardCharsets;
@@ -285,11 +287,4 @@ public class ClinicalResourceService {
     outbox.append("ehr.events.v1", resource.getId().toString(), event);
   }
 
-  public record ClinicalResourceBundle(
-      ClinicalResource resource,
-      ClinicalResourceVersion currentVersion,
-      List<ClinicalProvenance> provenance) {}
-
-  public record IntegrityResult(
-      UUID resourceId, boolean valid, Integer failedVersion, int versionsChecked) {}
 }

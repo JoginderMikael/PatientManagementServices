@@ -1,5 +1,6 @@
 package git.jogindermikael.reliability;
 
+import git.jogindermikael.reliability.dto.OutboxRecord;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Duration;

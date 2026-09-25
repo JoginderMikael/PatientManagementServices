@@ -1,6 +1,6 @@
 package git.jogindermikael.analyticsservice.repository;
 
-import git.jogindermikael.analyticsservice.model.PopulationHealthModels.*;
+import git.jogindermikael.analyticsservice.model.*;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;

@@ -1,5 +1,6 @@
 package git.jogindermikael.auditcomplianceservice.service;
 
+import git.jogindermikael.auditcomplianceservice.model.Kind;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
@@ -11,7 +12,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class ComplianceCaseService {
-    public enum Kind { INCIDENT, ACCESS_REVIEW, RESTORE_DRILL, RETENTION_REVIEW, DOCUMENT_REVIEW }
     private static final Map<String,Set<String>> TRANSITIONS = Map.of(
         "OPEN", Set.of("INVESTIGATING"),
         "INVESTIGATING", Set.of("CONTAINED", "REMEDIATING"),

@@ -2,9 +2,9 @@ package git.jogindermikael.ehrservice;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import git.jogindermikael.ehrservice.dto.EhrDtos.ClinicalAmendmentRequest;
-import git.jogindermikael.ehrservice.dto.EhrDtos.ClinicalResourceRequest;
-import git.jogindermikael.ehrservice.dto.EhrDtos.TerminologyCodeRequest;
+import git.jogindermikael.ehrservice.dto.ClinicalAmendmentRequest;
+import git.jogindermikael.ehrservice.dto.ClinicalResourceRequest;
+import git.jogindermikael.ehrservice.dto.TerminologyCodeRequest;
 import git.jogindermikael.ehrservice.service.ClinicalResourceService;
 import java.time.Instant;
 import java.util.Map;

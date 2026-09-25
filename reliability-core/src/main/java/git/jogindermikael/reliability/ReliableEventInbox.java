@@ -1,5 +1,6 @@
 package git.jogindermikael.reliability;
 
+import git.jogindermikael.reliability.dto.InboxRecord;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
@@ -145,14 +146,4 @@ public class ReliableEventInbox {
     return message.substring(0, Math.min(message.length(), 2000));
   }
 
-  public record InboxRecord(
-      UUID eventId,
-      String consumer,
-      String eventType,
-      String status,
-      int attempts,
-      String payloadHash,
-      Instant receivedAt,
-      Instant processedAt,
-      String lastError) {}
 }

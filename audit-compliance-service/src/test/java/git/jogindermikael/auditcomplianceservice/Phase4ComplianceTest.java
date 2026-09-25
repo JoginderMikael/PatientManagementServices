@@ -1,5 +1,6 @@
 package git.jogindermikael.auditcomplianceservice;
 
+import git.jogindermikael.auditcomplianceservice.model.Kind;
 import git.jogindermikael.auditcomplianceservice.service.*;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -56,7 +57,7 @@ class Phase4ComplianceTest {
     }
 
     @Test void incidentCannotSkipAssessmentNotificationOrLegalHold() {
-        UUID id = cases.create(ComplianceCaseService.Kind.INCIDENT, "owner", "ticket", Instant.now().plusSeconds(3600), "officer");
+        UUID id = cases.create(Kind.INCIDENT, "owner", "ticket", Instant.now().plusSeconds(3600), "officer");
         cases.transition(id, "OPEN", "INVESTIGATING", "triage", "officer");
         assertThrows(ResponseStatusException.class, () -> cases.transition(id, "INVESTIGATING", "REMEDIATING", "skip", "officer"));
         cases.transition(id, "INVESTIGATING", "CONTAINED", "contained", "officer");
@@ -73,7 +74,7 @@ class Phase4ComplianceTest {
     }
 
     @Test void staleTransitionsAreRejected() {
-        UUID id = cases.create(ComplianceCaseService.Kind.RESTORE_DRILL, "owner", "ticket", Instant.now().plusSeconds(3600), "officer");
+        UUID id = cases.create(Kind.RESTORE_DRILL, "owner", "ticket", Instant.now().plusSeconds(3600), "officer");
         cases.transition(id, "OPEN", "INVESTIGATING", "start", "officer");
         assertThrows(ResponseStatusException.class, () -> cases.transition(id, "OPEN", "INVESTIGATING", "stale", "officer"));
         cases.transition(id, "INVESTIGATING", "REMEDIATING", "restore-report", "officer");

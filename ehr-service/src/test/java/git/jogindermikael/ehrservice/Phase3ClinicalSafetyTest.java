@@ -2,7 +2,7 @@ package git.jogindermikael.ehrservice;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import git.jogindermikael.ehrservice.dto.EhrDtos.*;
+import git.jogindermikael.ehrservice.dto.*;
 import git.jogindermikael.ehrservice.service.*;
 import java.time.*;
 import java.util.*;
@@ -58,7 +58,7 @@ class Phase3ClinicalSafetyTest {
   void configuredInteractionBlocksAndClosedEncounterRejectsChanges() {
     UUID patient = UUID.randomUUID(), clinician = UUID.randomUUID();
     String first = UUID.randomUUID().toString(), second = UUID.randomUUID().toString();
-    safety.rule(new ClinicalSafetyService.Rule(first, second, "Synthetic interaction for testing"));
+    safety.rule(new Rule(first, second, "Synthetic interaction for testing"));
     service.prescribe(new PrescriptionRequest(patient, clinician, first, "test", "test", null));
     assertThrows(
         ResponseStatusException.class,

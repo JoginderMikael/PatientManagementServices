@@ -1,7 +1,7 @@
 package git.jogindermikael.analyticsservice.controller;
 
-import git.jogindermikael.analyticsservice.dto.PopulationHealthDtos.*;
-import git.jogindermikael.analyticsservice.model.PopulationHealthModels.*;
+import git.jogindermikael.analyticsservice.dto.*;
+import git.jogindermikael.analyticsservice.model.*;
 import git.jogindermikael.analyticsservice.service.PopulationHealthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

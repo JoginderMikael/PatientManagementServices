@@ -1,13 +1,13 @@
 package git.jogindermikael.ehrservice.controller;
 
-import git.jogindermikael.ehrservice.dto.EhrDtos.ClinicalAmendmentRequest;
-import git.jogindermikael.ehrservice.dto.EhrDtos.ClinicalResourceRequest;
-import git.jogindermikael.ehrservice.dto.EhrDtos.TerminologyCodeRequest;
-import git.jogindermikael.ehrservice.model.ClinicalResourceModels.ClinicalResource;
-import git.jogindermikael.ehrservice.model.ClinicalResourceModels.TerminologyCode;
+import git.jogindermikael.ehrservice.dto.ClinicalAmendmentRequest;
+import git.jogindermikael.ehrservice.dto.ClinicalResourceRequest;
+import git.jogindermikael.ehrservice.dto.TerminologyCodeRequest;
+import git.jogindermikael.ehrservice.model.ClinicalResource;
+import git.jogindermikael.ehrservice.model.TerminologyCode;
 import git.jogindermikael.ehrservice.service.ClinicalResourceService;
-import git.jogindermikael.ehrservice.service.ClinicalResourceService.ClinicalResourceBundle;
-import git.jogindermikael.ehrservice.service.ClinicalResourceService.IntegrityResult;
+import git.jogindermikael.ehrservice.dto.ClinicalResourceBundle;
+import git.jogindermikael.ehrservice.dto.IntegrityResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

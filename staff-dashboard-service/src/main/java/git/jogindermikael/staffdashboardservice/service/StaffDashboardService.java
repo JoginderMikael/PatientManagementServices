@@ -1,8 +1,8 @@
 package git.jogindermikael.staffdashboardservice.service;
 
-import git.jogindermikael.staffdashboardservice.dto.StaffDashboardDtos.*;
+import git.jogindermikael.staffdashboardservice.dto.*;
 import git.jogindermikael.staffdashboardservice.mapper.StaffDashboardMapper;
-import git.jogindermikael.staffdashboardservice.model.StaffDashboardModels.*;
+import git.jogindermikael.staffdashboardservice.model.*;
 import git.jogindermikael.staffdashboardservice.repository.StaffDashboardRepository;
 import java.time.LocalDate;
 import java.util.List;

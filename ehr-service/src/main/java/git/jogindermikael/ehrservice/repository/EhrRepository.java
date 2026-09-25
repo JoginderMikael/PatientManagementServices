@@ -1,6 +1,6 @@
 package git.jogindermikael.ehrservice.repository;
 
-import git.jogindermikael.ehrservice.model.EhrModels.*;
+import git.jogindermikael.ehrservice.model.*;
 import org.springframework.stereotype.Repository;
 import java.util.Collection; import java.util.UUID;
 

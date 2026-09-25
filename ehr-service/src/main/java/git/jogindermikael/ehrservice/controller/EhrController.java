@@ -1,7 +1,7 @@
 package git.jogindermikael.ehrservice.controller;
 
-import git.jogindermikael.ehrservice.dto.EhrDtos.*;
-import git.jogindermikael.ehrservice.model.EhrModels.*;
+import git.jogindermikael.ehrservice.dto.*;
+import git.jogindermikael.ehrservice.model.*;
 import git.jogindermikael.ehrservice.service.EhrService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

@@ -1,5 +1,8 @@
 package git.jogindermikael.staffdashboardservice.service;
 
+import git.jogindermikael.staffdashboardservice.dto.ClinicalTask;
+import git.jogindermikael.staffdashboardservice.dto.Comment;
+import git.jogindermikael.staffdashboardservice.dto.Handoff;
 import git.jogindermikael.staffdashboardservice.repository.StaffDashboardRepository;
 import jakarta.validation.constraints.*;
 import java.time.*;
@@ -70,12 +73,6 @@ public class TaskWorkflowService {
     access.queue(role);
   }
 
-  public record Handoff(
-      @NotNull UUID assigneeId,
-      @NotBlank String queueRole,
-      @NotNull Instant dueAt,
-      @NotBlank String reason) {}
-
   public void handoff(UUID id, Handoff c) {
     repository.lock();
     authorize(id);
@@ -94,8 +91,6 @@ public class TaskWorkflowService {
         id);
     history(id, "HANDOFF", c.reason());
   }
-
-  public record Comment(@NotBlank @Size(max = 2000) String text) {}
 
   public void comment(UUID id, Comment c) {
     repository.lock();
@@ -162,12 +157,6 @@ public class TaskWorkflowService {
       throw new ResponseStatusException(HttpStatus.CONFLICT, "Task already claimed or completed");
     history(id, "CLAIMED", "");
   }
-
-  public record ClinicalTask(
-      @NotBlank String reference,
-      @NotNull UUID patientId,
-      @NotNull UUID assigneeId,
-      @NotBlank @Size(max = 2000) String title) {}
 
   public Map<String, Object> clinical(ClinicalTask c) {
     repository.lock();

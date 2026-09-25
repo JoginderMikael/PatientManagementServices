@@ -1,5 +1,5 @@
 package git.jogindermikael.appointmentservice.repository;
-import git.jogindermikael.appointmentservice.model.AppointmentModels.WaitlistEntry;
+import git.jogindermikael.appointmentservice.model.WaitlistEntry;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 import jakarta.persistence.LockModeType;

@@ -1,7 +1,7 @@
 package git.jogindermikael.appointmentservice.controller;
 
-import git.jogindermikael.appointmentservice.dto.AppointmentDtos.*;
-import git.jogindermikael.appointmentservice.model.AppointmentModels.*;
+import git.jogindermikael.appointmentservice.dto.*;
+import git.jogindermikael.appointmentservice.model.*;
 import git.jogindermikael.appointmentservice.service.AppointmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

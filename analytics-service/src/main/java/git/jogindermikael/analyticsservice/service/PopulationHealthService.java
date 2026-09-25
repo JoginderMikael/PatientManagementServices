@@ -1,8 +1,8 @@
 package git.jogindermikael.analyticsservice.service;
 
-import git.jogindermikael.analyticsservice.dto.PopulationHealthDtos.*;
+import git.jogindermikael.analyticsservice.dto.*;
 import git.jogindermikael.analyticsservice.mapper.PopulationHealthMapper;
-import git.jogindermikael.analyticsservice.model.PopulationHealthModels.*;
+import git.jogindermikael.analyticsservice.model.*;
 import git.jogindermikael.analyticsservice.repository.PopulationHealthRepository;
 import org.springframework.stereotype.Service;
 

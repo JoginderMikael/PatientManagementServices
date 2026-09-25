@@ -1,5 +1,10 @@
 package git.jogindermikael.patientportalservice.service;
 
+import git.jogindermikael.patientportalservice.dto.AppointmentResolution;
+import git.jogindermikael.patientportalservice.dto.Grant;
+import git.jogindermikael.patientportalservice.dto.Identity;
+import git.jogindermikael.patientportalservice.dto.Release;
+import git.jogindermikael.patientportalservice.dto.Settlement;
 import git.jogindermikael.patientportalservice.repository.PatientPortalRepository;
 import jakarta.validation.constraints.*;
 import java.time.Instant;
@@ -32,9 +37,6 @@ public class PortalWorkflowService {
     this.identities = identities;
   }
 
-  public record Identity(@NotBlank @Size(max = 200) String subject, @NotNull UUID patientId) {
-  }
-
   public void bind(Identity c) {
     if (!access.admin())
       throw new org.springframework.security.access.AccessDeniedException("Admin required");
@@ -44,12 +46,6 @@ public class PortalWorkflowService {
         "INSERT INTO portal_identity(subject,patient_id,status,patient_status) VALUES (?,?,?,?)",
         c.subject(), c.patientId(), "ACTIVE", "ACTIVE");
     access.history(c.patientId(), "IDENTITY_BOUND");
-  }
-
-  public record Grant(
-      @NotBlank @Size(max = 200) String proxySubject,
-      @NotNull @Pattern(regexp = "RECORDS|APPOINTMENTS|PAYMENTS") String scope,
-      @NotNull @Future Instant expiresAt) {
   }
 
   public UUID grant(UUID patient, Grant c) {
@@ -114,11 +110,6 @@ public class PortalWorkflowService {
     access.history(id, "APPOINTMENT_CANCELLED");
   }
 
-  public record AppointmentResolution(
-      @NotNull @Pattern(regexp = "SCHEDULED|DECLINED") String status,
-      @NotBlank String appointmentReference) {
-  }
-
   public void resolveAppointment(UUID id, AppointmentResolution c) {
     repository.lock();
     admin();
@@ -129,9 +120,6 @@ public class PortalWorkflowService {
     jdbc.update(
         "INSERT INTO portal_appointment_resolution VALUES (?,?)", id, c.appointmentReference());
     access.history(id, "APPOINTMENT_" + c.status());
-  }
-
-  public record Release(@NotBlank @Size(max = 1000000) String content) {
   }
 
   public void release(UUID id, Release c) {
@@ -168,9 +156,6 @@ public class PortalWorkflowService {
   private void admin() {
     if (!access.admin())
       throw new org.springframework.security.access.AccessDeniedException("Admin required");
-  }
-
-  public record Settlement(@NotBlank @Size(max = 180) String providerReference) {
   }
 
   public Map<String, Object> settle(UUID id, Settlement c) {

@@ -2,7 +2,7 @@ package git.jogindermikael.appointmentservice;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import git.jogindermikael.appointmentservice.dto.AppointmentDtos.*;
+import git.jogindermikael.appointmentservice.dto.*;
 import git.jogindermikael.appointmentservice.service.AppointmentService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;

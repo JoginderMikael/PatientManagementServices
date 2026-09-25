@@ -1,8 +1,8 @@
 package git.jogindermikael.patientportalservice.service;
 
-import git.jogindermikael.patientportalservice.dto.PatientPortalDtos.*;
+import git.jogindermikael.patientportalservice.dto.*;
 import git.jogindermikael.patientportalservice.mapper.PatientPortalMapper;
-import git.jogindermikael.patientportalservice.model.PatientPortalModels.*;
+import git.jogindermikael.patientportalservice.model.*;
 import git.jogindermikael.patientportalservice.repository.PatientPortalRepository;
 import java.util.UUID;
 import org.springframework.stereotype.Service;

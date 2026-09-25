@@ -2,7 +2,7 @@ package git.jogindermikael.patientportalservice;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import git.jogindermikael.patientportalservice.dto.PatientPortalDtos.*;
+import git.jogindermikael.patientportalservice.dto.*;
 import git.jogindermikael.patientportalservice.service.*;
 import java.math.BigDecimal;
 import java.time.*;
@@ -42,12 +42,12 @@ class Phase3PortalTest {
     UUID patient = UUID.randomUUID();
     String owner = UUID.randomUUID().toString(), proxy = UUID.randomUUID().toString();
     identity("admin", "ADMIN");
-    workflow.bind(new PortalWorkflowService.Identity(owner, patient));
+    workflow.bind(new Identity(owner, patient));
     identity(owner, "PATIENT");
     UUID grant =
         workflow.grant(
             patient,
-            new PortalWorkflowService.Grant(proxy, "RECORDS", Instant.now().plusSeconds(3600)));
+            new Grant(proxy, "RECORDS", Instant.now().plusSeconds(3600)));
     identity(proxy, "PATIENT");
     var request = service.requestRecords(new RecordAccessCommand(patient, "SUMMARY"));
     assertThrows(
@@ -55,7 +55,7 @@ class Phase3PortalTest {
         () ->
             service.requestAppointment(new PortalAppointmentCommand(patient, "General", "Visit")));
     identity("admin", "ADMIN");
-    workflow.release(request.id(), new PortalWorkflowService.Release("Synthetic released record"));
+    workflow.release(request.id(), new Release("Synthetic released record"));
     identity(proxy, "PATIENT");
     assertEquals("Synthetic released record", workflow.download(request.id()));
     identity(owner, "PATIENT");
@@ -78,7 +78,7 @@ class Phase3PortalTest {
     UUID grant =
         workflow.grant(
             patient,
-            new PortalWorkflowService.Grant(subject, "RECORDS", Instant.now().plusSeconds(60)));
+            new Grant(subject, "RECORDS", Instant.now().plusSeconds(60)));
     jdbc.update(
         "UPDATE proxy_grant SET expires_at=? WHERE id=?",
         Instant.now().minusSeconds(1).atOffset(ZoneOffset.UTC),
@@ -94,7 +94,7 @@ class Phase3PortalTest {
     UUID patient = UUID.randomUUID();
     String subject = UUID.randomUUID().toString();
     identity("admin", "ADMIN");
-    workflow.bind(new PortalWorkflowService.Identity(subject, patient));
+    workflow.bind(new Identity(subject, patient));
     identity(subject, "PATIENT");
     assertEquals(patient, service.overviewForCurrentUser().patientId());
 
@@ -119,7 +119,7 @@ class Phase3PortalTest {
         ResponseStatusException.class,
         () ->
             workflow.resolveAppointment(
-                appt.id(), new PortalWorkflowService.AppointmentResolution("SCHEDULED", "ref")));
+                appt.id(), new AppointmentResolution("SCHEDULED", "ref")));
     var command = new PortalPaymentCommand(patient, UUID.randomUUID(), BigDecimal.TEN);
     String key = UUID.randomUUID().toString();
     assertEquals(service.payBill(command, key).id(), service.payBill(command, key).id());

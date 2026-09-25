@@ -1,6 +1,6 @@
 package git.jogindermikael.inventorypharmacyservice.repository;
 
-import git.jogindermikael.inventorypharmacyservice.model.InventoryPharmacyModels.*;
+import git.jogindermikael.inventorypharmacyservice.model.*;
 import java.time.*;
 import java.util.*;
 import org.springframework.jdbc.core.JdbcTemplate;

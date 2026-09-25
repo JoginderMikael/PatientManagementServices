@@ -1,6 +1,6 @@
 package git.jogindermikael.appointmentservice.repository;
 
-import git.jogindermikael.appointmentservice.model.AppointmentModels.AppointmentResourceSlot;
+import git.jogindermikael.appointmentservice.model.AppointmentResourceSlot;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 

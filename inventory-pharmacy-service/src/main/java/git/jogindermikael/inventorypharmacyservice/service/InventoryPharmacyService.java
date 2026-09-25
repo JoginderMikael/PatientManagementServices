@@ -1,8 +1,8 @@
 package git.jogindermikael.inventorypharmacyservice.service;
 
-import git.jogindermikael.inventorypharmacyservice.dto.InventoryPharmacyDtos.*;
+import git.jogindermikael.inventorypharmacyservice.dto.*;
 import git.jogindermikael.inventorypharmacyservice.mapper.InventoryPharmacyMapper;
-import git.jogindermikael.inventorypharmacyservice.model.InventoryPharmacyModels.*;
+import git.jogindermikael.inventorypharmacyservice.model.*;
 import git.jogindermikael.inventorypharmacyservice.repository.InventoryPharmacyRepository;
 import java.util.Comparator;
 import java.util.List;
@@ -175,14 +175,6 @@ public class InventoryPharmacyService {
         .toList();
   }
 
-  public record BatchReceipt(
-      @jakarta.validation.constraints.NotNull UUID medicationId,
-      @jakarta.validation.constraints.NotBlank String lot,
-      @jakarta.validation.constraints.NotNull @jakarta.validation.constraints.Future
-          java.time.LocalDate expiresOn,
-      @jakarta.validation.constraints.Min(1) int quantity,
-      @jakarta.validation.constraints.NotBlank String reference) {}
-
   public java.util.Map<String, Object> receive(BatchReceipt c) {
     repository.lock();
     var existing =
@@ -225,13 +217,6 @@ public class InventoryPharmacyService {
         c.reference());
     return jdbc.queryForMap("SELECT * FROM stock_movement WHERE reference=?", c.reference());
   }
-
-  public record SafetyReview(
-      @jakarta.validation.constraints.NotNull UUID medicationId,
-      boolean allergiesChecked,
-      boolean interactionsChecked,
-      boolean doseChecked,
-      @jakarta.validation.constraints.NotBlank String reason) {}
 
   public void review(UUID id, SafetyReview c) {
     repository.lock();

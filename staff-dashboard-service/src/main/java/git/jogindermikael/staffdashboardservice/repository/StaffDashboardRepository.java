@@ -1,6 +1,6 @@
 package git.jogindermikael.staffdashboardservice.repository;
 
-import git.jogindermikael.staffdashboardservice.model.StaffDashboardModels.*;
+import git.jogindermikael.staffdashboardservice.model.*;
 import java.time.*;
 import java.util.*;
 import org.springframework.jdbc.core.JdbcTemplate;

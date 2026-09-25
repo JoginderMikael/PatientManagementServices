@@ -1,7 +1,7 @@
 package git.jogindermikael.inventorypharmacyservice.mapper;
 
-import git.jogindermikael.inventorypharmacyservice.dto.InventoryPharmacyDtos.*;
-import git.jogindermikael.inventorypharmacyservice.model.InventoryPharmacyModels.*;
+import git.jogindermikael.inventorypharmacyservice.dto.*;
+import git.jogindermikael.inventorypharmacyservice.model.*;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;

@@ -1,7 +1,7 @@
 package git.jogindermikael.appointmentservice.mapper;
 
-import git.jogindermikael.appointmentservice.dto.AppointmentDtos.*;
-import git.jogindermikael.appointmentservice.model.AppointmentModels.*;
+import git.jogindermikael.appointmentservice.dto.*;
+import git.jogindermikael.appointmentservice.model.*;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;

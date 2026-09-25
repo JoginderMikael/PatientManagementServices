@@ -1,7 +1,7 @@
 package git.jogindermikael.insuranceservice.mapper;
 
-import git.jogindermikael.insuranceservice.dto.InsuranceDtos.*;
-import git.jogindermikael.insuranceservice.model.InsuranceModels.*;
+import git.jogindermikael.insuranceservice.dto.*;
+import git.jogindermikael.insuranceservice.model.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;

@@ -1,8 +1,8 @@
 package git.jogindermikael.ehrservice.service;
 
-import git.jogindermikael.ehrservice.dto.EhrDtos.*;
+import git.jogindermikael.ehrservice.dto.*;
 import git.jogindermikael.ehrservice.mapper.EhrMapper;
-import git.jogindermikael.ehrservice.model.EhrModels.*;
+import git.jogindermikael.ehrservice.model.*;
 import git.jogindermikael.ehrservice.repository.ClinicalNoteRepository;
 import git.jogindermikael.ehrservice.repository.EhrRepository;
 import git.jogindermikael.ehrservice.repository.EncounterRepository;

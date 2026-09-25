@@ -1,6 +1,6 @@
 package git.jogindermikael.appointmentservice.repository;
 
-import git.jogindermikael.appointmentservice.model.AppointmentModels.*;
+import git.jogindermikael.appointmentservice.model.*;
 import org.springframework.stereotype.Repository;
 import java.util.Collection;
 import java.util.Optional;

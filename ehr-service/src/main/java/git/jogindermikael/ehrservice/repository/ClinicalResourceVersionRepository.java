@@ -1,6 +1,6 @@
 package git.jogindermikael.ehrservice.repository;
 
-import git.jogindermikael.ehrservice.model.ClinicalResourceModels.ClinicalResourceVersion;
+import git.jogindermikael.ehrservice.model.ClinicalResourceVersion;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

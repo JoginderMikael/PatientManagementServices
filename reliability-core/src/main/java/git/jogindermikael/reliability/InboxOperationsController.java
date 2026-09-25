@@ -1,5 +1,6 @@
 package git.jogindermikael.reliability;
 
+import git.jogindermikael.reliability.dto.InboxRecord;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +20,7 @@ public class InboxOperationsController {
   }
 
   @GetMapping
-  public List<ReliableEventInbox.InboxRecord> list(
+  public List<InboxRecord> list(
       @RequestParam(required = false) String status,
       @RequestParam(defaultValue = "0") int offset,
       @RequestParam(defaultValue = "50") int limit) {

@@ -1,7 +1,7 @@
 package git.jogindermikael.insuranceservice.controller;
 
-import git.jogindermikael.insuranceservice.dto.InsuranceDtos.*;
-import git.jogindermikael.insuranceservice.model.InsuranceModels.*;
+import git.jogindermikael.insuranceservice.dto.*;
+import git.jogindermikael.insuranceservice.model.*;
 import git.jogindermikael.insuranceservice.service.InsuranceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -72,13 +72,13 @@ public class InsuranceController {
 
   @PostMapping("/policies/{id}/eligibility-evidence")
   public void evidence(
-      @PathVariable UUID id, @Valid @RequestBody InsuranceService.EligibilityEvidence request) {
+      @PathVariable UUID id, @Valid @RequestBody EligibilityEvidence request) {
     insuranceService.recordEvidence(id, request);
   }
 
   @PostMapping("/claims/{id}/remittances")
   public java.util.Map<String, Object> remit(
-      @PathVariable UUID id, @Valid @RequestBody InsuranceService.RemittanceRequest request) {
+      @PathVariable UUID id, @Valid @RequestBody RemittanceRequest request) {
     return insuranceService.remit(id, request);
   }
 

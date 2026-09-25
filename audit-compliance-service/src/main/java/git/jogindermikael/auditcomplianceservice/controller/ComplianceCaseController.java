@@ -1,5 +1,8 @@
 package git.jogindermikael.auditcomplianceservice.controller;
 
+import git.jogindermikael.auditcomplianceservice.dto.Create;
+import git.jogindermikael.auditcomplianceservice.dto.Hold;
+import git.jogindermikael.auditcomplianceservice.dto.Transition;
 import git.jogindermikael.auditcomplianceservice.service.ComplianceCaseService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -15,11 +18,6 @@ import org.springframework.web.bind.annotation.*;
 public class ComplianceCaseController {
     private final ComplianceCaseService service;
     public ComplianceCaseController(ComplianceCaseService service) { this.service = service; }
-    public record Create(@NotNull ComplianceCaseService.Kind kind, @NotBlank @Size(max=200) String owner,
-                         @NotBlank @Size(max=200) String evidenceReference, @NotNull Instant dueAt) {}
-    public record Transition(@NotBlank @Size(max=30) String expectedStatus, @NotBlank @Size(max=30) String status,
-                             @NotBlank @Size(max=200) String evidenceReference) {}
-    public record Hold(boolean enabled, @NotBlank @Size(max=200) String evidenceReference) {}
     @PostMapping
     public Map<String,UUID> create(@Valid @RequestBody Create body, Principal actor) {
         return Map.of("id", service.create(body.kind(), body.owner(), body.evidenceReference(), body.dueAt(), actor.getName()));

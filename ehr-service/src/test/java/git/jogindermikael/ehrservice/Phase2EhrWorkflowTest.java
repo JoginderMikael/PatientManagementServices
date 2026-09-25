@@ -1,6 +1,6 @@
 package git.jogindermikael.ehrservice;
 
-import git.jogindermikael.ehrservice.dto.EhrDtos.*; import git.jogindermikael.ehrservice.model.EhrModels.*; import git.jogindermikael.ehrservice.service.EhrService;
+import git.jogindermikael.ehrservice.dto.*; import git.jogindermikael.ehrservice.model.*; import git.jogindermikael.ehrservice.service.EhrService;
 import org.junit.jupiter.api.Test; import org.springframework.beans.factory.annotation.Autowired; import org.springframework.boot.test.context.SpringBootTest;
 import java.time.LocalDate; import java.util.UUID; import static org.junit.jupiter.api.Assertions.*;
 

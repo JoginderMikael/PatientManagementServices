@@ -1,8 +1,8 @@
 package git.jogindermikael.appointmentservice.service;
 
-import git.jogindermikael.appointmentservice.dto.AppointmentDtos.*;
+import git.jogindermikael.appointmentservice.dto.*;
 import git.jogindermikael.appointmentservice.mapper.AppointmentMapper;
-import git.jogindermikael.appointmentservice.model.AppointmentModels.*;
+import git.jogindermikael.appointmentservice.model.*;
 import git.jogindermikael.appointmentservice.repository.AppointmentRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

@@ -1,7 +1,7 @@
 package git.jogindermikael.staffdashboardservice.mapper;
 
-import git.jogindermikael.staffdashboardservice.dto.StaffDashboardDtos.*;
-import git.jogindermikael.staffdashboardservice.model.StaffDashboardModels.*;
+import git.jogindermikael.staffdashboardservice.dto.*;
+import git.jogindermikael.staffdashboardservice.model.*;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;

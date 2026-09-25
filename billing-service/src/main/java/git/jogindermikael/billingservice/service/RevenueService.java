@@ -1,5 +1,7 @@
 package git.jogindermikael.billingservice.service;
 
+import git.jogindermikael.billingservice.dto.InvoiceCommand;
+import git.jogindermikael.billingservice.dto.PaymentCommand;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.*;
@@ -19,19 +21,6 @@ public class RevenueService {
     this.jdbc = jdbc;
     this.accounts = accounts;
   }
-
-  public record InvoiceCommand(
-      @NotNull UUID patientId,
-      @NotBlank String reference,
-      @NotNull @DecimalMin(value = "0", inclusive = false) @Digits(integer = 17, fraction = 2)
-          BigDecimal amount,
-      @Pattern(regexp = "[A-Z]{3}") @NotNull String currency) {}
-
-  public record PaymentCommand(
-      @NotBlank String reference,
-      @NotNull @DecimalMin(value = "0", inclusive = false) @Digits(integer = 17, fraction = 2)
-          BigDecimal amount,
-      @Pattern(regexp = "PAYMENT|REMITTANCE") @NotNull String kind) {}
 
   public Map<String, Object> invoice(InvoiceCommand c) {
     jdbc.queryForObject(

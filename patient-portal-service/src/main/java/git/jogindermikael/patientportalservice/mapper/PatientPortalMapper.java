@@ -1,7 +1,7 @@
 package git.jogindermikael.patientportalservice.mapper;
 
-import git.jogindermikael.patientportalservice.dto.PatientPortalDtos.*;
-import git.jogindermikael.patientportalservice.model.PatientPortalModels.*;
+import git.jogindermikael.patientportalservice.dto.*;
+import git.jogindermikael.patientportalservice.model.*;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;

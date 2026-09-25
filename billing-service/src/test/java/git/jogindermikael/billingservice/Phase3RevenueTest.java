@@ -2,6 +2,8 @@ package git.jogindermikael.billingservice;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import git.jogindermikael.billingservice.dto.InvoiceCommand;
+import git.jogindermikael.billingservice.dto.PaymentCommand;
 import git.jogindermikael.billingservice.service.RevenueService;
 import java.math.BigDecimal;
 import java.time.*;
@@ -21,14 +23,14 @@ class Phase3RevenueTest {
   void paymentsAreIdempotentAndCannotOverpay() {
     var invoice =
         service.invoice(
-            new RevenueService.InvoiceCommand(
+            new InvoiceCommand(
                 UUID.randomUUID(), UUID.randomUUID().toString(), new BigDecimal("100.00"), "USD"));
     UUID id = (UUID) invoice.get("id");
     assertEquals(
         new BigDecimal("100.00"),
         accounts.forPatient((UUID) invoice.get("patient_id")).getBalance());
     var command =
-        new RevenueService.PaymentCommand(
+        new PaymentCommand(
             UUID.randomUUID().toString(), new BigDecimal("70.00"), "REMITTANCE");
     var payment = service.post(id, command);
     assertEquals(payment.get("id"), service.post(id, command).get("id"));
@@ -37,7 +39,7 @@ class Phase3RevenueTest {
         () ->
             service.post(
                 id,
-                new RevenueService.PaymentCommand(
+                new PaymentCommand(
                     UUID.randomUUID().toString(), new BigDecimal("31.00"), "PAYMENT")));
     assertEquals(new BigDecimal("70.00"), service.get(id).get("paid"));
     assertEquals(
@@ -51,7 +53,7 @@ class Phase3RevenueTest {
         (UUID)
             service
                 .invoice(
-                    new RevenueService.InvoiceCommand(
+                    new InvoiceCommand(
                         UUID.randomUUID(),
                         UUID.randomUUID().toString(),
                         new BigDecimal("10.00"),
@@ -67,7 +69,7 @@ class Phase3RevenueTest {
               try {
                 service.post(
                     id,
-                    new RevenueService.PaymentCommand(
+                    new PaymentCommand(
                         UUID.randomUUID().toString(), new BigDecimal("10.00"), "PAYMENT"));
                 return true;
               } catch (ResponseStatusException e) {

@@ -1,5 +1,6 @@
 package git.jogindermikael.inventorypharmacyservice.controller;
 
+import git.jogindermikael.inventorypharmacyservice.dto.Bill;
 import git.jogindermikael.inventorypharmacyservice.integration.WorkflowClient;
 import git.jogindermikael.inventorypharmacyservice.service.InventoryPharmacyService;
 import java.util.*;
@@ -19,11 +20,6 @@ public class PharmacyBillingController {
     this.client = client;
     this.service = service;
   }
-
-  public record Bill(
-      @jakarta.validation.constraints.NotNull
-          @jakarta.validation.constraints.Pattern(regexp = "[A-Z]{3}")
-          String currency) {}
 
   @PostMapping("/prescriptions/{id}/bill")
   public Map<String, Object> bill(

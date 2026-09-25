@@ -1,5 +1,9 @@
 package git.jogindermikael.authservice.controller;
 
+import git.jogindermikael.authservice.dto.CreateUserRequest;
+import git.jogindermikael.authservice.dto.RoleRequest;
+import git.jogindermikael.authservice.dto.StatusRequest;
+import git.jogindermikael.authservice.dto.UserResponse;
 import git.jogindermikael.authservice.model.User;
 import git.jogindermikael.authservice.service.UserService;
 import jakarta.validation.Valid;
@@ -26,21 +30,6 @@ public class UserAdminController {
 
     public UserAdminController(UserService users) {
         this.users = users;
-    }
-
-    public record CreateUserRequest(
-            @Email @NotBlank @Size(max = 255) String email,
-            @NotBlank @Size(min = 12, max = 200) String password,
-            @NotBlank String role) {}
-
-    public record RoleRequest(@NotBlank String role) {}
-
-    public record StatusRequest(@NotBlank String status) {}
-
-    public record UserResponse(UUID id, String email, String role, String status) {
-        static UserResponse from(User user) {
-            return new UserResponse(user.getId(), user.getEmail(), user.getRole(), user.getStatus());
-        }
     }
 
     @PostMapping

@@ -2,7 +2,7 @@ package git.jogindermikael.notificationservice.kafka;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import git.jogindermikael.notificationservice.dto.NotificationDtos.NotificationRequest;
+import git.jogindermikael.notificationservice.dto.NotificationRequest;
 import git.jogindermikael.notificationservice.service.NotificationService;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;

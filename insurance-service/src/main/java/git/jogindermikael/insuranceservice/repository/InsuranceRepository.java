@@ -1,6 +1,6 @@
 package git.jogindermikael.insuranceservice.repository;
 
-import git.jogindermikael.insuranceservice.model.InsuranceModels.*;
+import git.jogindermikael.insuranceservice.model.*;
 import java.time.*;
 import java.util.*;
 import org.springframework.jdbc.core.JdbcTemplate;

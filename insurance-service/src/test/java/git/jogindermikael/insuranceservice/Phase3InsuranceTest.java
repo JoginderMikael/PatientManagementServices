@@ -2,7 +2,7 @@ package git.jogindermikael.insuranceservice;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import git.jogindermikael.insuranceservice.dto.InsuranceDtos.*;
+import git.jogindermikael.insuranceservice.dto.*;
 import git.jogindermikael.insuranceservice.service.InsuranceService;
 import java.math.BigDecimal;
 import java.time.*;
@@ -51,7 +51,7 @@ class Phase3InsuranceTest {
     assertEquals("PENDING", service.verifyCoverage(command).status());
     service.recordEvidence(
         policy.id(),
-        new InsuranceService.EligibilityEvidence(
+        new EligibilityEvidence(
             "TEST", LocalDate.now().plusDays(1), "payer-reference", new BigDecimal("65")));
     assertEquals(
         new BigDecimal("65.00"), service.verifyCoverage(command).insuranceResponsibility());
@@ -90,7 +90,7 @@ class Phase3InsuranceTest {
             claim.id(), new ClaimAdjudicationRequest("APPROVED", new BigDecimal("70.00")));
     assertEquals(new BigDecimal("100.00"), approved.amount());
     var remittance =
-        new InsuranceService.RemittanceRequest(
+        new RemittanceRequest(
             UUID.randomUUID().toString(), new BigDecimal("70.00"));
     var posted = service.remit(claim.id(), remittance);
     assertEquals(posted.get("id"), service.remit(claim.id(), remittance).get("id"));
@@ -99,6 +99,6 @@ class Phase3InsuranceTest {
         () ->
             service.remit(
                 claim.id(),
-                new InsuranceService.RemittanceRequest(remittance.reference(), BigDecimal.ONE)));
+                new RemittanceRequest(remittance.reference(), BigDecimal.ONE)));
   }
 }

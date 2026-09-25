@@ -2,7 +2,7 @@ package git.jogindermikael.staffdashboardservice;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import git.jogindermikael.staffdashboardservice.dto.StaffDashboardDtos.*;
+import git.jogindermikael.staffdashboardservice.dto.*;
 import git.jogindermikael.staffdashboardservice.service.*;
 import java.time.*;
 import java.util.*;
@@ -55,7 +55,7 @@ class Phase3StaffTest {
   @WithMockUser(roles = "ADMIN")
   void clinicalHandoffIsIdempotent() {
     var command =
-        new TaskWorkflowService.ClinicalTask(
+        new ClinicalTask(
             UUID.randomUUID().toString(),
             UUID.randomUUID(),
             UUID.randomUUID(),

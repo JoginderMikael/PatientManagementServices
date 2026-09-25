@@ -1,6 +1,6 @@
 package git.jogindermikael.notificationservice;
 
-import git.jogindermikael.notificationservice.dto.NotificationDtos.NotificationRequest;
+import git.jogindermikael.notificationservice.dto.NotificationRequest;
 import git.jogindermikael.notificationservice.model.NotificationMessage;
 import git.jogindermikael.notificationservice.repository.NotificationRepository;
 import git.jogindermikael.notificationservice.service.NotificationDispatcher;

@@ -1,5 +1,7 @@
 package git.jogindermikael.ehrservice.service;
 
+import git.jogindermikael.ehrservice.dto.Alert;
+import git.jogindermikael.ehrservice.dto.Rule;
 import git.jogindermikael.ehrservice.repository.EhrRepository;
 import jakarta.validation.constraints.*;
 import java.util.*;
@@ -64,11 +66,6 @@ public class ClinicalSafetyService {
     }
   }
 
-  public record Rule(
-      @NotBlank @Size(max = 200) String medication,
-      @NotBlank @Size(max = 200) String interactingMedication,
-      @NotBlank @Size(max = 1000) String reason) {}
-
   public UUID rule(Rule c) {
     lock();
     UUID id = UUID.randomUUID();
@@ -80,12 +77,6 @@ public class ClinicalSafetyService {
         c.reason());
     return id;
   }
-
-  public record Alert(
-      @NotNull UUID patientId,
-      @NotNull UUID assigneeId,
-      @NotBlank @Size(max = 200) String sourceReference,
-      @NotBlank @Size(max = 2000) String summary) {}
 
   public Map<String, Object> alert(Alert c) {
     lock();

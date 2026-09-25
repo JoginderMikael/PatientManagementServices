@@ -1,5 +1,8 @@
 package git.jogindermikael.staffdashboardservice.controller;
 
+import git.jogindermikael.staffdashboardservice.dto.ClinicalTask;
+import git.jogindermikael.staffdashboardservice.dto.Comment;
+import git.jogindermikael.staffdashboardservice.dto.Handoff;
 import git.jogindermikael.staffdashboardservice.service.TaskWorkflowService;
 import jakarta.validation.Valid;
 import java.util.*;
@@ -29,12 +32,12 @@ public class TaskWorkflowController {
   }
 
   @PostMapping("/tasks/{id}/handoff")
-  public void handoff(@PathVariable UUID id, @Valid @RequestBody TaskWorkflowService.Handoff c) {
+  public void handoff(@PathVariable UUID id, @Valid @RequestBody Handoff c) {
     service.handoff(id, c);
   }
 
   @PostMapping("/tasks/{id}/comments")
-  public void comment(@PathVariable UUID id, @Valid @RequestBody TaskWorkflowService.Comment c) {
+  public void comment(@PathVariable UUID id, @Valid @RequestBody Comment c) {
     service.comment(id, c);
   }
 
@@ -51,7 +54,7 @@ public class TaskWorkflowController {
 
   @PostMapping("/clinical-tasks")
   @PreAuthorize("hasAnyRole('ADMIN','CLINICIAN','NURSE')")
-  public Map<String, Object> clinical(@Valid @RequestBody TaskWorkflowService.ClinicalTask c) {
+  public Map<String, Object> clinical(@Valid @RequestBody ClinicalTask c) {
     return service.clinical(c);
   }
 }

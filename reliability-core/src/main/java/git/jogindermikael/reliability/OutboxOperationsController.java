@@ -1,5 +1,6 @@
 package git.jogindermikael.reliability;
 
+import git.jogindermikael.reliability.dto.OutboxRecord;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;

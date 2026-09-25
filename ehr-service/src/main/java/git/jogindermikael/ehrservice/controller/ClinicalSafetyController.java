@@ -1,6 +1,8 @@
 package git.jogindermikael.ehrservice.controller;
 
+import git.jogindermikael.ehrservice.dto.Alert;
 import git.jogindermikael.ehrservice.service.ClinicalSafetyService;
+import git.jogindermikael.ehrservice.dto.Rule;
 import jakarta.validation.Valid;
 import java.util.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,12 +20,12 @@ public class ClinicalSafetyController {
 
   @PostMapping("/rules")
   @PreAuthorize("hasRole('ADMIN')")
-  public UUID rule(@Valid @RequestBody ClinicalSafetyService.Rule c) {
+  public UUID rule(@Valid @RequestBody Rule c) {
     return service.rule(c);
   }
 
   @PostMapping("/alerts")
-  public Map<String, Object> alert(@Valid @RequestBody ClinicalSafetyService.Alert c) {
+  public Map<String, Object> alert(@Valid @RequestBody Alert c) {
     return service.alert(c);
   }
 
