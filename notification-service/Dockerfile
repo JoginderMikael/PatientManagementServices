@@ -23,7 +23,8 @@ COPY integration-tests/pom.xml integration-tests/pom.xml
 
 RUN --mount=type=cache,id=patient-management-maven-v2,target=/root/.m2,sharing=locked \
     for attempt in 1 2 3; do \
-        if mvn -pl notification-service -am dependency:resolve dependency:resolve-plugins -DincludeScope=runtime -DskipTests -B; then exit 0; fi; \
+        if mvn -pl reliability-core -am install -DskipTests -Dspring-boot.repackage.skip=true -B && \
+            mvn -pl notification-service -am dependency:resolve dependency:resolve-plugins -DincludeScope=runtime -DskipTests -B; then exit 0; fi; \
         echo "Maven download failed (attempt $attempt/3); retrying..."; \
         sleep $((attempt * 5)); \
     done; \

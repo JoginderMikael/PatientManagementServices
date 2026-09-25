@@ -13,6 +13,7 @@ x-database-env: &database-env
   SPRING_SQL_INIT_MODE: ${SPRING_SQL_INIT_MODE:-never}
   SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED:-true}
   SPRING_FLYWAY_LOCATIONS: ${SPRING_FLYWAY_LOCATIONS:-classpath:db/migration,classpath:db/dev-migration}
+  SPRING_FLYWAY_OUT_OF_ORDER: ${SPRING_FLYWAY_OUT_OF_ORDER:-true}
 
 # Application readiness, including database connectivity where applicable.
 x-service-healthcheck: &service-healthcheck
